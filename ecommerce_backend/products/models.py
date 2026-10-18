@@ -4,10 +4,9 @@ from django.db import models
 
 class Product(models.Model):
     category = models.ForeignKey(
-        "Category",
-        on_delete = models.CASCADE,
-        db_column = "category_id",
-        related_name = "products",
+        "categories.Category",
+        on_delete=models.CASCADE,
+        related_name="products",
     )
     product_name = models.CharField(max_length=255)
     description = models.TextField()
