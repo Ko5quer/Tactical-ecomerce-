@@ -1,13 +1,13 @@
-from django.shortcuts import render
-from rest_framework import Response
-from rest_framework import api_view
+from rest_framework.response import Response
+from rest_framework.decorators import api_view
 from rest_framework import status
+
 from .models import Product
 from .serializers import ProductSerializer
 # Create your views here.
 
 @api_view(["GET"])
-def hello():
+def hello(request):
     return Response({"message": "Hello World"})
 
 @api_view(["GET"])
@@ -21,17 +21,3 @@ def get_product(request, product_id):
         )
     serializer = ProductSerializer(product)
     return Response(serializer.data)
-
-
-def get_categories():
-    pass
-
-def add_product():
-    pass
-
-def update_product():
-    pass
-
-def delete_product():
-    pass
-
