@@ -13,6 +13,7 @@ class Product(models.Model):
         max_digits=10,
         decimal_places=2,
     )
+    current_stock = models.PositiveIntegerField(default=0)
     image = models.ImageField(
         upload_to="products/",
         null=True,
@@ -21,6 +22,12 @@ class Product(models.Model):
 
     class Meta:
         db_table = "products"
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(current_stock__gte=0),
+                name="product_stock_nonnegative",
+            ),
+        ]
 
     def __str__(self):
         return self.product_name
