@@ -28,6 +28,28 @@ class Order(models.Model):
         choices=STATUS_CHOICES,
         default="pending",
     )
+    PAYMENT_METHOD_CHOICES = [
+    ("cod", "Cash on Delivery"),
+    ]
+
+    PAYMENT_STATUS_CHOICES = [
+        ("unpaid", "Unpaid"),
+        ("paid", "Paid"),
+    ]
+    
+    payment_method = models.CharField(
+    max_length=20,
+    choices=PAYMENT_METHOD_CHOICES,
+    default="cod",
+    )
+
+    payment_status = models.CharField(
+        max_length=20,
+        choices=PAYMENT_STATUS_CHOICES,
+        default="unpaid",
+    )
+
+
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

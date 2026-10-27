@@ -41,9 +41,7 @@ INSTALLED_APPS = [
     'accounts',
     'products',
     'categories',
-    'cart_items',
-    'cart',
-    'order_items',
+    'carts',
     'orders',
 
 ]
@@ -123,8 +121,12 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
-STATIC_URL = 'static/'
+# Static files
+STATIC_URL = "static/"
 
+# Uploaded media files, such as product images
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # Email
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
@@ -135,8 +137,8 @@ MAILERS = {
     },
 }
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENITCATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
 }
 

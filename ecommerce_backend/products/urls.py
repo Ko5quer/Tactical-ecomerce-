@@ -1,7 +1,7 @@
-from django.urls import path, include
-from .views import get_product, hello
+from django.urls import path
+from .views import hello, get_product
+
 urlpatterns = [
-    path("hello/", hello ),
-    path('<int:product_id>/', get_product, name = "get_product" ),
-    
+    path("hello/", hello, name="hello"),
+    path("<int:product_id>/", get_product, name="get_product"),
 ]

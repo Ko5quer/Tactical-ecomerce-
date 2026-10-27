@@ -1,96 +1,239 @@
+
 from django.test import TestCase
-from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
+from decimal import Decimal
+
+from products.models import Product
 
 from .models import Category
-from .serializers import CategorySerializer
-# Create your tests here.
 
 
+class CategoryListTests(TestCase):
+    """Tests for GET /api/categories/."""
 
-class CategoryViewTests(TestCase):
     def setUp(self):
         self.client = APIClient()
+        self.url = "/api/categories/"
 
-        self.category = Category.objects.create(
-            name="Tactical Clothing"
-        )
-
-        self.second_category = Category.objects.create(
-            name="Accessories"
-        )
-
-    def test_get_all_categories(self):
-        url = reverse("get_categories")
-
-        response = self.client.get(url)
+    def test_list_categories_returns_200(self):
+        response = self.client.get(self.url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 2)
 
-    def test_get_single_category(self):
-        url = reverse("get_category", args=[self.category.id])
+    def test_list_categories_returns_empty_list_when_no_categories_exist(self):
+        response = self.client.get(self.url)
 
-        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, [])
+
+    def test_list_categories_returns_all_categories(self):
+        Category.objects.create(name="Clothing")
+        Category.objects.create(name="Footwear")
+        Category.objects.create(name="Accessories")
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 3)
+
+        returned_names = {item["name"] for item in response.data}
+        self.assertSetEqual(
+            returned_names,
+            {"Clothing", "Footwear", "Accessories"},
+        )
+
+    def test_list_categories_returns_correct_category_data(self):
+        category = Category.objects.create(name="Clothing")
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["id"], category.id)
+        self.assertEqual(response.data[0]["name"], "Clothing")
+
+    def test_list_categories_does_not_modify_database(self):
+        Category.objects.create(name="Clothing")
+        initial_count = Category.objects.count()
+
+        self.client.get(self.url)
+
+        self.assertEqual(Category.objects.count(), initial_count)
+
+    def test_list_categories_supports_get_only(self):
+        response = self.client.post(self.url, {"name": "New category"})
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
+        self.assertFalse(Category.objects.filter(name="New category").exists())
+
+
+class CategoryDetailTests(TestCase):
+    """Tests for GET /api/categories/<category_id>/."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.category = Category.objects.create(name="Clothing")
+        self.url = f"/api/categories/{self.category.id}/"
+
+    def test_get_category_returns_200(self):
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_get_category_returns_correct_category(self):
+        response = self.client.get(self.url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["id"], self.category.id)
-        self.assertEqual(response.data["name"], "Tactical Clothing")
+        self.assertEqual(response.data["name"], "Clothing")
 
-    def test_get_nonexistent_category(self):
-        url = reverse("get_category", args=[999999])
+    def test_get_category_returns_expected_fields(self):
+        response = self.client.get(self.url)
 
-        response = self.client.get(url)
+        self.assertEqual(
+            set(response.data.keys()),
+            {"id", "name", "created_at", "updated_at"},
+        )
+
+    def test_get_category_does_not_return_other_categories(self):
+        other_category = Category.objects.create(name="Footwear")
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["id"], self.category.id)
+        self.assertNotEqual(response.data["id"], other_category.id)
+
+    def test_get_nonexistent_category_returns_404(self):
+        response = self.client.get("/api/categories/99999/")
 
         self.assertEqual(
             response.status_code,
-            status.HTTP_404_NOT_FOUND
+            status.HTTP_404_NOT_FOUND,
         )
-        self.assertEqual(
-            response.data,
-            {"error": "Category not found"}
-        )
+        self.assertEqual(response.data["error"], "Category not found")
 
-    def test_post_to_category_list_is_not_allowed(self):
-        url = reverse("get_categories")
+    def test_get_category_does_not_modify_database(self):
+        initial_count = Category.objects.count()
 
-        response = self.client.post(url, {"name": "New Category"})
+        self.client.get(self.url)
 
-        self.assertEqual(
-            response.status_code,
-            status.HTTP_405_METHOD_NOT_ALLOWED
-        )
+        self.assertEqual(Category.objects.count(), initial_count)
 
-    def test_non_integer_category_id_returns_404(self):
-        response = self.client.get("/api/categories/invalid/")
+    def test_get_category_supports_get_only(self):
+        response = self.client.post(self.url, {"name": "New category"})
 
         self.assertEqual(
             response.status_code,
-            status.HTTP_404_NOT_FOUND
+            status.HTTP_405_METHOD_NOT_ALLOWED,
+        )
+
+    def test_invalid_category_id_returns_404(self):
+        # Assumes category_id is an integer URL parameter.
+        response = self.client.get("/api/categories/not-a-number/")
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_404_NOT_FOUND,
         )
 
 
-class CategorySerializerTests(TestCase):
+class CategoryModelTests(TestCase):
+    """Tests for Category model behaviour."""
+
+    def test_create_category(self):
+        category = Category.objects.create(name="Clothing")
+
+        self.assertIsNotNone(category.id)
+        self.assertEqual(category.name, "Clothing")
+        self.assertEqual(Category.objects.count(), 1)
+
+    def test_category_string_representation(self):
+        category = Category.objects.create(name="Clothing")
+
+        self.assertEqual(str(category), "Clothing")
+
+    def test_category_timestamps_are_populated(self):
+        category = Category.objects.create(name="Clothing")
+
+        self.assertIsNotNone(category.created_at)
+        self.assertIsNotNone(category.updated_at)
+
+    def test_category_uses_expected_database_table(self):
+        self.assertEqual(Category._meta.db_table, "categories")
+
+
+
+class CategoryProductsTests(TestCase):
+    """Tests for GET /api/categories/<category_id>/products/."""
+
     def setUp(self):
-        self.category = Category.objects.create(
-            name="Tactical Gear"
+        self.client = APIClient()
+
+        self.clothing = Category.objects.create(name="Clothing")
+        self.footwear = Category.objects.create(name="Footwear")
+
+        self.jacket = Product.objects.create(
+            category=self.clothing,
+            product_name="Tactical Jacket",
+            description="Outdoor jacket.",
+            product_price=Decimal("599.99"),
+            current_stock=10,
         )
 
-    def test_category_serializes_correctly(self):
-        serializer = CategorySerializer(self.category)
+        self.boots = Product.objects.create(
+            category=self.footwear,
+            product_name="Combat Boots",
+            description="Durable boots.",
+            product_price=Decimal("899.99"),
+            current_stock=5,
+        )
 
-        self.assertEqual(serializer.data["id"], self.category.id)
-        self.assertEqual(serializer.data["name"], "Tactical Gear")
+    def test_returns_products_for_selected_category(self):
+        response = self.client.get(
+            f"/api/categories/{self.clothing.id}/products/"
+        )
 
-    def test_category_list_serializes_correctly(self):
-        Category.objects.create(name="Footwear")
-
-        categories = Category.objects.all()
-        serializer = CategorySerializer(categories, many=True)
-
-        self.assertEqual(len(serializer.data), 2)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
         self.assertEqual(
-            serializer.data[0]["name"],
-            "Tactical Gear"
+            response.data[0]["product_name"],
+            "Tactical Jacket",
         )
+
+    def test_does_not_return_products_from_other_categories(self):
+        response = self.client.get(
+            f"/api/categories/{self.clothing.id}/products/"
+        )
+
+        product_names = {
+            item["product_name"] for item in response.data
+        }
+
+        self.assertIn("Tactical Jacket", product_names)
+        self.assertNotIn("Combat Boots", product_names)
+
+    def test_category_with_no_products_returns_empty_list(self):
+        empty_category = Category.objects.create(name="Accessories")
+
+        response = self.client.get(
+            f"/api/categories/{empty_category.id}/products/"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, [])
+
+    def test_nonexistent_category_returns_404(self):
+        response = self.client.get(
+            "/api/categories/99999/products/"
+        )
+
+        self.assertEqual(
+            response.status_code,
+            status.HTTP_404_NOT_FOUND,
+        )
+        self.assertEqual(response.data["error"], "Category not found")
