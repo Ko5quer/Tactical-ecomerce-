@@ -1,0 +1,284 @@
+@startuml
+title TCC Airsoft E-Commerce System - CRC Cards
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+
+package "Accounts" {
+    class User {
+        - email
+        - first_name
+        - last_name
+        - user_id
+        --
+        + get_username()
+    }
+
+    class UserManager {
+        + create_user()
+        + create_superuser()
+    }
+
+    class RegisterSerializer
+    class UserSerializer
+
+    note right of User
+        Responsibilities:
+        - Store user account information.
+        - Authenticate users.
+        - Manage user permissions.
+
+        Collaborators:
+        - UserManager
+        - Cart
+        - Order
+        - RegisterSerializer
+        - UserSerializer
+    end note
+
+    note right of UserManager
+        Responsibilities:
+        - Create user accounts.
+        - Normalize email addresses.
+        - Hash user passwords.
+        - Save user records.
+
+        Collaborators:
+        - User
+    end note
+}
+
+package "Categories" {
+    class Category {
+        - name
+        - created_at
+        - updated_at
+        --
+        + __str__()
+    }
+
+    class CategorySerializer
+
+    note right of Category
+        Responsibilities:
+        - Store product categories.
+        - Organize products.
+        - Provide category information.
+
+        Collaborators:
+        - Product
+        - CategorySerializer
+    end note
+}
+
+package "Products" {
+    class Product {
+        - product_name
+        - description
+        - product_price
+        - current_stock
+        - image
+    }
+
+    class ProductSerializer
+
+    note right of Product
+        Responsibilities:
+        - Store product information.
+        - Maintain product prices.
+        - Track available stock.
+        - Associate products with categories.
+
+        Collaborators:
+        - Category
+        - CartItem
+        - OrderItem
+        - ProductSerializer
+    end note
+}
+
+package "Carts" {
+    class Cart {
+        - created_at
+        - updated_at
+    }
+
+    class CartItem {
+        - quantity
+        - created_at
+        - updated_at
+    }
+
+    class CartSerializer
+    class CartItemSerializer
+
+    note right of Cart
+        Responsibilities:
+        - Maintain a user's shopping cart.
+        - Store cart information.
+        - Provide access to cart items.
+
+        Collaborators:
+        - User
+        - CartItem
+        - CartSerializer
+    end note
+
+    note right of CartItem
+        Responsibilities:
+        - Associate products with a cart.
+        - Store product quantities.
+        - Ensure valid quantities.
+        - Prevent duplicate product entries.
+
+        Collaborators:
+        - Cart
+        - Product
+        - CartItemSerializer
+    end note
+}
+
+package "Orders" {
+    class Order {
+        - total
+        - status
+        - payment_method
+        - payment_status
+        - delivery details
+        - created_at
+        - updated_at
+        --
+        + reference
+        + __str__()
+    }
+
+    class OrderItem {
+        - quantity
+        - price
+        - created_at
+        - updated_at
+    }
+
+    class PaymentMethod {
+        - code
+        - label
+        - description
+        - instructions
+        - is_enabled
+        - sort_order
+    }
+
+    class BankAccount {
+        - bank details
+        - is_active
+        --
+        + save()
+    }
+
+    class PaymentGateway {
+        - provider
+        - environment
+        - is_active
+        - merchant_id
+        - public_key
+        - notes
+    }
+
+    class CheckoutSerializer
+    class OrderSerializer
+    class OrderItemSerializer
+    class PaymentMethodSerializer
+    class BankAccountSerializer
+
+    note right of Order
+        Responsibilities:
+        - Store customer orders.
+        - Track order status.
+        - Store payment and delivery details.
+        - Generate order references.
+        - Maintain the order total.
+
+        Collaborators:
+        - User
+        - OrderItem
+        - CheckoutSerializer
+        - OrderSerializer
+    end note
+
+    note right of OrderItem
+        Responsibilities:
+        - Associate products with orders.
+        - Store purchased quantities.
+        - Store the product price at purchase time.
+        - Validate order item quantities.
+
+        Collaborators:
+        - Order
+        - Product
+        - OrderItemSerializer
+    end note
+
+    note right of PaymentMethod
+        Responsibilities:
+        - Store available payment methods.
+        - Provide payment instructions.
+        - Control payment method availability.
+
+        Collaborators:
+        - PaymentMethodSerializer
+        - Order
+    end note
+
+    note right of BankAccount
+        Responsibilities:
+        - Store bank account details.
+        - Track the active bank account.
+        - Ensure only one account is active.
+
+        Collaborators:
+        - BankAccountSerializer
+        - Payment instructions
+    end note
+
+    note right of PaymentGateway
+        Responsibilities:
+        - Store payment gateway configuration.
+        - Identify the payment provider.
+        - Store non-secret gateway settings.
+
+        Collaborators:
+        - Payment administration
+    end note
+}
+
+' Account relationships
+UserManager ..> User : creates
+User "1" -- "1" Cart : owns
+User "1" -- "*" Order : places
+
+' Category and product relationships
+Category "1" -- "*" Product : contains
+
+' Cart relationships
+Cart "1" -- "*" CartItem : contains
+Product "1" -- "*" CartItem : added to
+
+' Order relationships
+Order "1" -- "*" OrderItem : contains
+Product "1" -- "*" OrderItem : purchased as
+
+' Serializer relationships
+RegisterSerializer ..> User
+UserSerializer ..> User
+CategorySerializer ..> Category
+ProductSerializer ..> Product
+CartSerializer ..> Cart
+CartItemSerializer ..> CartItem
+CheckoutSerializer ..> Order
+OrderSerializer ..> Order
+OrderItemSerializer ..> OrderItem
+PaymentMethodSerializer ..> PaymentMethod
+BankAccountSerializer ..> BankAccount
+
+@enduml

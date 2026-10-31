@@ -71,10 +71,7 @@ class OrderItemAdmin(admin.ModelAdmin):
     search_fields = ("product__product_name", "order__id")
 
 
-# ---------------------------------------------------------------------
 #  PAYMENT SETTINGS
-# ---------------------------------------------------------------------
-
 @admin.register(PaymentMethod)
 class PaymentMethodAdmin(admin.ModelAdmin):
     list_display = ("label", "code", "is_enabled", "sort_order")

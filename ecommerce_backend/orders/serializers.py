@@ -12,7 +12,6 @@ from .models import (
     ensure_default_payment_methods,
 )
 
-# letters (any language), spaces, apostrophes, full stops and hyphens; must start with a letter
 NAME_RE = re.compile(r"^[^\W\d_](?:[^\W\d_]|[ '.\-])*$")
 PHONE_RE = re.compile(r"^\+?[0-9 ()\-]+$")
 POSTAL_RE = re.compile(r"^[A-Za-z0-9 \-]{3,10}$")

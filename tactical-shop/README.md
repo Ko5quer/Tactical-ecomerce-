@@ -1,148 +1,163 @@
-# Tactical shop: React frontend + Django backend files
+# TC Airsoft Guild shop: React frontend + Django backend
 
 ```
 tactical-shop/
 ├── README.md
-├── frontend/src/      → goes into your React project's  src/
-└── backend/           → goes into your Django project  (folder with manage.py)
+├── frontend/src/      -> goes into your React project's  src/
+└── backend/           -> goes into your Django project  (folder with manage.py)
 ```
 
 ---------------------------------------------------------------------
 ## 1. FRONTEND  (copy `frontend/src/` over your React project's `src/`)
 ---------------------------------------------------------------------
 
-| File | Purpose |
-|---|---|
-| `src/main.jsx` | Entry point. Adds the router. **Replaces** yours. |
-| `src/App.jsx` | The list of pages/routes. Add new pages here. **Replaces** yours. |
-| `src/index.css` | Global reset. **Replaces** the Vite/CRA default (the default breaks the layout). |
-| `src/shop.css` | Styles for product, cart, order and featured sections. |
-| `src/siteConfig.js` | **Edit this for everyday changes**: menu links, banner text, featured section text. |
-| `src/components/logo.png` | PLACEHOLDER logo. Overwrite with your own logo, keep the name. |
-| `src/components/api.js` | Server address (line 2), login tokens, price format, currency. |
-| `src/components/AppContext.jsx` | Logged-in user + cart logic shared by all pages. |
-| `src/components/Banner.jsx / .css` | Top header, menu and hero banner. |
-| `src/components/Categories.jsx / .css` | The orange category carousel (loads from the API). |
-| `src/components/FeaturedProducts.jsx` | Random products from different categories. |
-| `src/components/ProductCard.jsx` | One product + Add to cart button. |
-| `src/components/AuthModal.jsx / .css` | Login / sign up / log out popup. |
-| `src/components/Layout.jsx` | Wraps every page with the banner and popup. |
-| `src/components/RequireLogin.jsx` | Shows a "Log in" prompt on private pages. |
-| `src/pages/HomePage.jsx` | Categories + featured products. |
-| `src/pages/CategoriesPage.jsx` | The Categories menu page. |
-| `src/pages/CategoryPage.jsx` | Products inside one category. |
-| `src/pages/CartPage.jsx` | Cart, quantities, remove, then "Proceed to checkout". |
-| `src/pages/CheckoutPage.jsx` | NEW: delivery details, payment method choice, order review. |
-| `src/pages/OrderPage.jsx` | "Order received" confirmation, progress tracker, payment instructions. |
-| `src/pages/OrdersPage.jsx` | NEW: "My orders" history (linked from the account popup). |
-| `src/pages/AboutPage.jsx` | Placeholder About page. |
-| `src/pages/EventsPage.jsx` | Placeholder Book Events page. |
-
-Setup:
-
     cd your-react-project
     npm install react-router-dom
-    # copy frontend/src/* into your src/, then:
+    # copy frontend/src/* into your src/
     npm run dev
 
 You can delete the old `src/App.css` and `src/assets/`.
+Replace `src/components/logo.png` (a placeholder) with your own logo, same name.
 
-### Editing the menu (src/siteConfig.js)
+### Files
 
-    export const NAV_LINKS = [
-      { label: "Home", href: "/" },
-      { label: "Categories", href: "/categories" },
-      // { label: "About", href: "/about" },          <- remove the // to show
-      // { label: "Book Events", href: "/events" },   <- remove the // to show
-    ];
+| File | Purpose |
+|---|---|
+| `src/main.jsx` | Entry point (adds the router). Replaces yours. |
+| `src/App.jsx` | List of pages/routes. Replaces yours. |
+| `src/index.css` | Global reset. Replaces the Vite/CRA default (the default breaks the layout). |
+| `src/shop.css` | Styles for products, cart, checkout, orders, search, about, contact, footer. |
+| **`src/siteConfig.js`** | **Edit this for everyday changes**: menu, banner text, About text, contact + social links. |
+| `components/api.js` | Server address (line 2), login tokens, error messages, price format/currency. |
+| `components/validation.js` | Form checks (name, email, phone, address...) + the `useForm` helper. |
+| `components/Field.jsx` | One form field with its error message. |
+| `components/AppContext.jsx` | Logged-in user + cart, shared by all pages. |
+| `components/Banner.jsx / .css` | Header, menu, hero banner. |
+| `components/Categories.jsx / .css` | Orange category carousel. |
+| `components/FeaturedProducts.jsx` | Random products from different categories. |
+| `components/ProductCard.jsx` | One product + Add to cart. |
+| `components/AuthModal.jsx / .css` | Log in / sign up / log out popup. |
+| `components/SearchOverlay.jsx` | Search box opened by the magnifying glass. |
+| `components/SocialLinks.jsx` | SVG icons (email, WhatsApp, Instagram, Facebook) + link list. |
+| `components/Footer.jsx` | Footer with menu links and social icons. |
+| `components/Layout.jsx` | Banner + footer + popups around every page. |
+| `components/ErrorBoundary.jsx` | Friendly message instead of a blank page if a page crashes. |
+| `components/ErrorNotice.jsx` | Visible error with a "Try again" button. |
+| `components/SafeImage.jsx` | Image that shows "No image" when missing/broken. |
+| `components/RequireLogin.jsx` | "Log in" prompt on private pages. |
+| `pages/HomePage.jsx` | Categories + featured products. |
+| `pages/CategoriesPage.jsx` | The Categories menu page. |
+| `pages/CategoryPage.jsx` | Products in one category. |
+| `pages/SearchPage.jsx` | Search results (`/search?q=...`). |
+| `pages/CartPage.jsx` | Cart, quantities, remove. |
+| `pages/CheckoutPage.jsx` | Delivery details + payment method (options come from the server). |
+| `pages/OrderPage.jsx` | "Order received", progress tracker, how to pay (bank details from the server). |
+| `pages/OrdersPage.jsx` | My orders list. |
+| `pages/AboutPage.jsx` | About us (text from `ABOUT` in siteConfig.js). |
+| `pages/ContactPage.jsx` | Contact cards + message form (details from `CONTACT` in siteConfig.js). |
+| `pages/EventsPage.jsx` | Placeholder "Book events" page (not in the menu yet). |
 
-To add a brand new page:
-1. Copy `pages/AboutPage.jsx` to `pages/MyPage.jsx` and edit it.
-2. In `App.jsx` add the import and `<Route path="/my-page" element={<MyPage />} />`.
-3. In `siteConfig.js` add `{ label: "My Page", href: "/my-page" }`.
+### Everyday edits (src/siteConfig.js)
+
+- Menu: edit `NAV_LINKS` (Home, Categories, About and Contact are on by default).
+- To add a page: create it in `pages/`, add a `<Route>` in `App.jsx`, add a line to `NAV_LINKS`.
+- About text: edit `ABOUT` (specialties and affiliations are lists).
+- Email / WhatsApp / Instagram / Facebook: edit `CONTACT`. Clear a value and its icon disappears.
 
 ---------------------------------------------------------------------
 ## 2. BACKEND  (copy `backend/` files into your Django project)
 ---------------------------------------------------------------------
 
-Paths below are relative to the folder that contains `manage.py`.
+Paths are relative to the folder that contains `manage.py`.
 
-| File in this zip | Copy to | New or replaces? |
+| File in this zip | Copy to | |
 |---|---|---|
-| `backend/ecommerce_backend/settings.py` | `ecommerce_backend/settings.py` | Replaces (adds corsheaders, AUTH_USER_MODEL, CORS list) |
-| `backend/ecommerce_backend/urls.py` | `ecommerce_backend/urls.py` | Replaces (adds accounts + carts) |
-| `backend/accounts/models.py` | `accounts/models.py` | Replaces (custom User) |
-| `backend/accounts/admin.py` | `accounts/admin.py` | Replaces |
-| `backend/accounts/serializers.py` | `accounts/serializers.py` | NEW |
-| `backend/accounts/views.py` | `accounts/views.py` | Replaces |
-| `backend/accounts/urls.py` | `accounts/urls.py` | NEW |
-| `backend/categories/serializers.py` | `categories/serializers.py` | Replaces (adds image) |
-| `backend/categories/views.py` | `categories/views.py` | Replaces |
-| `backend/orders/models.py` | `orders/models.py` | Replaces (adds delivery fields + payment methods) |
-| `backend/orders/serializers.py` | `orders/serializers.py` | Replaces (adds checkout validation) |
-| `backend/orders/views.py` | `orders/views.py` | Replaces (checkout saves delivery + payment) |
-| `backend/orders/admin.py` | `orders/admin.py` | Replaces (status editing + bulk actions) |
-| `backend/products/views.py` | `products/views.py` | Replaces (adds featured_products) |
-| `backend/products/urls.py` | `products/urls.py` | Replaces (adds featured/) |
+| `ecommerce_backend/settings.py` | same path | replaces (corsheaders, AUTH_USER_MODEL, CORS list) |
+| `ecommerce_backend/urls.py` | same path | replaces (adds accounts + carts) |
+| `accounts/models.py`, `admin.py`, `views.py` | same paths | replace |
+| `accounts/serializers.py` | same path | replaces (name checks) |
+| `accounts/urls.py` | same path | new |
+| `categories/serializers.py`, `views.py` | same paths | replace |
+| `products/views.py`, `urls.py` | same paths | replace (featured + search) |
+| `carts/views.py` | same path | replaces (stock + input checks) |
+| `orders/models.py`, `serializers.py`, `views.py`, `urls.py`, `admin.py` | same paths | replace |
 
-`carts/` is NOT included: leave it as it is.
-
-NOTE: the included settings.py is your own file plus the lines marked `NEW`.
-If you have made other changes to settings.py since, copy only the NEW lines instead.
+The included `settings.py` is your file plus the lines marked `NEW`. If you changed
+settings since, copy only the NEW lines instead.
 
 Setup:
 
     pip install djangorestframework djangorestframework-simplejwt django-cors-headers pillow
-
-If you are switching to the custom user for the first time, the database must be
-reset (the old tables point at Django's default user). Back up first if needed:
-
-    python manage.py dumpdata categories products --indent 2 > backup.json
-    rm db.sqlite3
-    find . -path "*/migrations/*.py" -not -name "__init__.py" -not -path "*/venv/*" -not -path "*/.venv/*" -delete
-    python manage.py makemigrations accounts categories products carts orders
-    python manage.py migrate
-    python manage.py createsuperuser
-    python manage.py loaddata backup.json      # only if you made a backup
-    python manage.py runserver
-
-### Orders update (delivery details + payment methods)
-
-After copying the `orders/` files, add the new columns to the database
-(existing orders are kept, their new fields are simply blank):
-
     python manage.py makemigrations orders
     python manage.py migrate
+    python manage.py runserver
 
-### Payments: what is switched on
+(If you are moving to the custom user for the first time, the database must be reset:
+see the notes in the chat history, or back up with `dumpdata` first.)
 
-Customers can choose: Cash on delivery, or Bank transfer (EFT).
-"Card / online" is shown greyed out as "Coming soon" until a gateway is connected.
+### New API addresses
 
-- Menu of methods, bank details, contact info: `frontend/src/siteConfig.js`
-- Methods the SERVER accepts: `ENABLED_PAYMENT_METHODS` in `orders/serializers.py`
-  (a method must be enabled in BOTH places).
-
-Before going live, replace the placeholder `BANK_DETAILS` and `STORE_CONTACT`
-in `siteConfig.js` with your real details.
+    GET  /api/products/featured/?limit=8       random in-stock products, mixed categories
+    GET  /api/products/search/?q=cargo         products + categories matching the words typed
+    GET  /api/orders/payment-methods/          public: options shown at checkout
+    GET  /api/orders/<id>/payment-instructions/  private: how to pay for YOUR order (bank details for EFT)
 
 ---------------------------------------------------------------------
-## 3. CHECK IT WORKS
+## 3. BANK DETAILS AND PAYMENT SETTINGS  (edited in /admin/, not in code)
 ---------------------------------------------------------------------
 
-Open these in the browser while Django is running:
+Log in to `/admin/` and open the **Orders** section:
+
+### Bank accounts  (shown to customers who choose EFT)
+Add ONE account and leave "Is active" ticked. Fields:
+
+| Field | Notes |
+|---|---|
+| Bank name | e.g. FNB, Standard Bank |
+| Account holder | exactly as the bank has it |
+| Account number | |
+| Branch code | |
+| Branch name | optional |
+| Account type | business / cheque / savings / transmission |
+| SWIFT code | only if you accept international payments |
+| Proof of payment email | where customers send proof of payment |
+
+If you add a second account and tick "Is active", the first one switches off automatically.
+Customers only see the bank details on THEIR OWN unpaid EFT order, never publicly.
+The payment reference is the order number (`ORD-00012`), shown with a Copy button.
+
+### Payment methods  (what shows at checkout)
+Cash on delivery, Bank transfer (EFT) and Card/online are created automatically the
+first time they are needed. In `/admin/` > Payment methods you can:
+- turn a method on/off (`Is enabled`; off = shown greyed out as "Coming soon")
+- change its label, short description and the instructions shown after ordering
+- change the order they appear in
+
+### Payment gateways  (for card payments later)
+Stores NON-SECRET settings only: provider, sandbox/live mode, merchant ID, notes.
+Secret keys (merchant key, passphrase, secret key) must go in environment variables,
+never in the database or the React code. Card payments stay "Coming soon" until a
+gateway integration is written.
+
+---------------------------------------------------------------------
+## 4. CHECK IT WORKS
+---------------------------------------------------------------------
+
+With Django running, open:
 
     http://127.0.0.1:8000/api/categories/
     http://127.0.0.1:8000/api/products/featured/?limit=8
+    http://127.0.0.1:8000/api/products/search/?q=pants
+    http://127.0.0.1:8000/api/orders/payment-methods/
 
-Then open the React site (usually http://localhost:5173), sign up from the
-account icon, browse a category, add something to the cart, then Cart > Proceed
-to checkout > Place order. You should land on the "Order received" page.
-Change its status in /admin/ > Orders and refresh to see the tracker move.
+Then use the site: sign up, search, add to cart, checkout with EFT, and check the order
+page shows your bank details. Change the order's status in /admin/ and refresh.
 
 Troubleshooting:
 - Page error mentioning logo.png: the file must be at src/components/logo.png
-- "CORS" error in the browser console: check CORS_ALLOWED_ORIGINS matches your React address
+- "CORS" error in the console: CORS_ALLOWED_ORIGINS must match your React address and port
 - Cart badge always 0: `api/carts/` missing from the project urls.py
-- Images not loading: product images need MEDIA_URL/MEDIA_ROOT and the DEBUG static() line in urls.py
+- "Bank details aren't available online yet": add a Bank account in /admin/ and tick Is active
+- Payment options won't load: check /api/orders/payment-methods/ opens in the browser
+- Images not loading: MEDIA_URL/MEDIA_ROOT and the DEBUG static() line in urls.py
 - Server address differs from http://127.0.0.1:8000: change line 2 of src/components/api.js

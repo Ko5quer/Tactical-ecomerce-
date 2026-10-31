@@ -42,7 +42,6 @@ def featured_products(request):
     except ValueError:
         limit = 8
 
-    # (product id, category id) for everything in stock, shuffled
     rows = list(
         Product.objects.filter(current_stock__gt=0).values_list("id", "category_id")
     )

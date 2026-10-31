@@ -134,8 +134,7 @@ def remove_cartItem(request, item_id):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def checkout(request):
-    # Placeholder kept so carts/urls.py still works. The real checkout is
-    # POST /api/orders/checkout/
+
     return Response(
         {"message": "Use /api/orders/checkout/ to place an order."},
         status=status.HTTP_501_NOT_IMPLEMENTED,

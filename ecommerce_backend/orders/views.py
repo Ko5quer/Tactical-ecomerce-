@@ -51,13 +51,11 @@ def get_order(request, order_id):
 @permission_classes([IsAuthenticated])
 @transaction.atomic
 def checkout(request):
-    # 1. validate delivery details + payment method from the checkout page
     details = CheckoutSerializer(data=request.data)
     details.is_valid(raise_exception=True)
     info = details.validated_data
     payment_method = info.pop("payment_method")
 
-    # 2. load the cart
     cart = get_object_or_404(
         Cart.objects.select_for_update(),
         user=request.user,
@@ -70,7 +68,6 @@ def checkout(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    # 3. lock the products and check stock
     product_ids = sorted({item.product_id for item in cart_items})
     products = (
         Product.objects.select_for_update()
@@ -87,7 +84,6 @@ def checkout(request):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-    # 4. work out the total on the server (never trust the browser's number)
     total = sum(
         (
             products_by_id[item.product_id].product_price * item.quantity
@@ -96,7 +92,6 @@ def checkout(request):
         Decimal("0.00"),
     )
 
-    # 5. create the order
     order = Order.objects.create(
         user=request.user,
         total=total,
@@ -119,15 +114,13 @@ def checkout(request):
         product.current_stock -= item.quantity
         product.save(update_fields=["current_stock"])
 
-    # 6. empty the cart only after the order items exist
     cart.cart_items.all().delete()
 
     return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
 
 
-# ---------------------------------------------------------------------
+
 #  PAYMENT INFORMATION
-# ---------------------------------------------------------------------
 
 @api_view(["GET"])
 @permission_classes([AllowAny])

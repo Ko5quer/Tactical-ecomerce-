@@ -39,7 +39,6 @@ class Order(models.Model):
         max_length=20, choices=PAYMENT_STATUS_CHOICES, default="unpaid"
     )
 
-    # delivery details
     full_name = models.CharField(max_length=150, blank=True, default="")
     phone = models.CharField(max_length=30, blank=True, default="")
     address = models.CharField(max_length=255, blank=True, default="")
@@ -85,9 +84,6 @@ class OrderItem(models.Model):
         return f"{self.product.product_name} x {self.quantity}"
 
 
-# =====================================================================
-#  PAYMENT SETTINGS (edited by the shop owner in /admin/)
-# =====================================================================
 
 class PaymentMethod(models.Model):
     """Which payment options customers see at checkout, and what we tell

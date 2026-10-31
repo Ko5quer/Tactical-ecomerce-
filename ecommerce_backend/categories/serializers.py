@@ -3,8 +3,6 @@ from .models import Category
 
 
 class CategorySerializer(serializers.ModelSerializer):
-    # Categories have no image of their own, so use the first product photo
-    # in the category. If there is none, the React app shows a texture instead.
     image = serializers.SerializerMethodField()
 
     class Meta:

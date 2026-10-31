@@ -1,9 +1,13 @@
 import random
 from collections import defaultdict
 
+from django.db.models import Q
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+
+from categories.models import Category
+from categories.serializers import CategorySerializer
 
 from .models import Product
 from .serializers import ProductSerializer
@@ -63,3 +67,45 @@ def featured_products(request):
 
     serializer = ProductSerializer(ordered, many=True, context={"request": request})
     return Response(serializer.data)
+
+
+@api_view(["GET"])
+def search_products(request):
+    """Search products (name, description, category name) and categories (name).
+
+    GET /api/products/search/?q=cargo&limit=24
+    Every word typed must match somewhere, so "black cargo" narrows the results.
+    """
+    q = " ".join((request.query_params.get("q") or "").split())[:100]
+
+    if len(q) < 2:
+        return Response({"query": q, "products": [], "categories": []})
+
+    try:
+        limit = max(1, min(int(request.query_params.get("limit", 24)), 48))
+    except ValueError:
+        limit = 24
+
+    products = Product.objects.select_related("category")
+    for term in q.split()[:6]:
+        products = products.filter(
+            Q(product_name__icontains=term)
+            | Q(description__icontains=term)
+            | Q(category__name__icontains=term)
+        )
+    products = products.order_by("product_name")[:limit]
+
+    categories = (
+        Category.objects.filter(name__icontains=q)
+        .prefetch_related("products")
+        .order_by("name")[:8]
+    )
+
+    context = {"request": request}
+    return Response(
+        {
+            "query": q,
+            "products": ProductSerializer(products, many=True, context=context).data,
+            "categories": CategorySerializer(categories, many=True, context=context).data,
+        }
+    )

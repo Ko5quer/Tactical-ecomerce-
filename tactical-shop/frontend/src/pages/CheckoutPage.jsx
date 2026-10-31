@@ -1,44 +1,95 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth, useCart } from "../components/AppContext";
+import ErrorNotice from "../components/ErrorNotice";
+import Field from "../components/Field";
 import RequireLogin from "../components/RequireLogin";
-import { errorMessage, formatPrice } from "../components/api";
-import { DELIVERY_NOTE, PAYMENT_METHODS } from "../siteConfig";
+import { api, errorMessage, formatPrice, splitErrors } from "../components/api";
+import { CHECKOUT_SCHEMA, useForm } from "../components/validation";
+import { DELIVERY_NOTE } from "../siteConfig";
+
+const FIELDS = ["full_name", "phone", "address", "city", "postal_code", "notes", "payment_method"];
 
 function CheckoutForm() {
   const { user } = useAuth();
-  const { cart, items, subtotal, checkout } = useCart();
+  const { cart, cartError, refresh, items, subtotal, checkout } = useCart();
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({
-    full_name: [user.first_name, user.last_name].filter(Boolean).join(" "),
-    phone: "",
-    address: "",
-    city: "",
-    postal_code: "",
-    notes: "",
-  });
-  const [method, setMethod] = useState(PAYMENT_METHODS.find((m) => m.enabled)?.id);
+  const form = useForm(
+    {
+      full_name: [user.first_name, user.last_name].filter(Boolean).join(" "),
+      phone: "",
+      address: "",
+      city: "",
+      postal_code: "",
+      notes: "",
+    },
+    CHECKOUT_SCHEMA,
+    "co"
+  );
+
+  // payment options come from the server (editable in the Django admin)
+  const [methods, setMethods] = useState(null);
+  const [methodsError, setMethodsError] = useState("");
+  const [method, setMethod] = useState("");
+
+  const loadMethods = useCallback(() => {
+    setMethodsError("");
+    api("/api/orders/payment-methods/", { auth: false })
+      .then((list) => {
+        setMethods(list);
+        setMethod((current) => current || list.find((m) => m.is_enabled)?.code || "");
+      })
+      .catch((err) => setMethodsError(errorMessage(err)));
+  }, []);
+
+  useEffect(() => {
+    loadMethods();
+  }, [loadMethods]);
+
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
-
   const submit = async (e) => {
     e.preventDefault();
-    setBusy(true);
     setError("");
+
+    const valid = form.validateAll();
+    if (!method) {
+      setError("Please choose a payment method.");
+      return;
+    }
+    if (!valid) return;
+
+    setBusy(true);
     try {
-      const order = await checkout({ ...form, payment_method: method });
+      const details = Object.fromEntries(
+        Object.entries(form.values).map(([k, v]) => [k, v.trim()])
+      );
+      const order = await checkout({ ...details, payment_method: method });
       // "placed" tells the order page to show the big "order received" message
       navigate(`/orders/${order.id}`, { state: { placed: true } });
     } catch (err) {
-      setError(errorMessage(err));
+      const { fields, general } = splitErrors(err, FIELDS);
+      if (fields.payment_method) {
+        setError(fields.payment_method);
+        delete fields.payment_method;
+      } else {
+        setError(general);
+      }
+      form.setServerErrors(fields);
+      refresh(); // stock may have changed, keep the cart accurate
       setBusy(false);
     }
   };
 
-  if (!cart) return <p className="muted">Loading…</p>;
+  if (!cart) {
+    return cartError ? (
+      <ErrorNotice message={`We couldn't load your cart. ${cartError}`} onRetry={refresh} />
+    ) : (
+      <p className="muted">Loading…</p>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -49,62 +100,74 @@ function CheckoutForm() {
     );
   }
 
+  const fieldProps = (name) => ({
+    name,
+    idPrefix: "co",
+    value: form.values[name],
+    onChange: form.setField(name),
+    onBlur: form.blur(name),
+    error: form.errors[name],
+  });
+
   return (
-    <form className="cart" onSubmit={submit}>
+    <form className="cart" onSubmit={submit} noValidate>
       <div>
         {/* ---------- 1. delivery ---------- */}
         <section className="panel">
           <h2><span className="step-num">1</span> Delivery details</h2>
           <div className="fields">
-            <label className="field">
-              Full name
-              <input required value={form.full_name} onChange={set("full_name")} autoComplete="name" />
-            </label>
-            <label className="field">
-              Phone number
-              <input required type="tel" value={form.phone} onChange={set("phone")} autoComplete="tel" />
-            </label>
-            <label className="field field--wide">
-              Street address
-              <input required value={form.address} onChange={set("address")} autoComplete="street-address" />
-            </label>
-            <label className="field">
-              City / town
-              <input required value={form.city} onChange={set("city")} autoComplete="address-level2" />
-            </label>
-            <label className="field">
-              Postal code
-              <input value={form.postal_code} onChange={set("postal_code")} autoComplete="postal-code" />
-            </label>
-            <label className="field field--wide">
-              Order notes (optional)
-              <textarea rows="3" value={form.notes} onChange={set("notes")} />
-            </label>
+            <Field label="Full name" {...fieldProps("full_name")} autoComplete="name" maxLength={150} />
+            <Field label="Phone number" {...fieldProps("phone")} type="tel" autoComplete="tel" maxLength={30} />
+            <Field label="Street address" {...fieldProps("address")} wide autoComplete="street-address" maxLength={255} />
+            <Field label="City / town" {...fieldProps("city")} autoComplete="address-level2" maxLength={100} />
+            <Field
+              label="Postal code (optional)"
+              {...fieldProps("postal_code")}
+              autoComplete="postal-code"
+              maxLength={10}
+            />
+            <Field
+              label="Order notes (optional)"
+              {...fieldProps("notes")}
+              as="textarea"
+              rows="3"
+              wide
+              maxLength={500}
+              hint={`${form.values.notes.length}/500`}
+            />
           </div>
         </section>
 
         {/* ---------- 2. payment ---------- */}
         <section className="panel">
           <h2><span className="step-num">2</span> Payment method</h2>
-          {PAYMENT_METHODS.map((m) => (
+
+          {methodsError && <ErrorNotice message={`Couldn't load payment options. ${methodsError}`} onRetry={loadMethods} />}
+          {!methods && !methodsError && <p className="muted">Loading payment options…</p>}
+
+          {methods?.length === 0 && (
+            <p className="muted">No payment methods are available right now. Please contact us.</p>
+          )}
+
+          {methods?.map((m) => (
             <label
-              key={m.id}
-              className={`pay ${method === m.id ? "is-selected" : ""} ${m.enabled ? "" : "is-disabled"}`}
+              key={m.code}
+              className={`pay ${method === m.code ? "is-selected" : ""} ${m.is_enabled ? "" : "is-disabled"}`}
             >
               <input
                 type="radio"
                 name="payment"
-                value={m.id}
-                checked={method === m.id}
-                disabled={!m.enabled}
-                onChange={() => setMethod(m.id)}
+                value={m.code}
+                checked={method === m.code}
+                disabled={!m.is_enabled}
+                onChange={() => setMethod(m.code)}
               />
               <span className="pay__text">
                 <span className="pay__label">
                   {m.label}
-                  {!m.enabled && <span className="pay__tag">Coming soon</span>}
+                  {!m.is_enabled && <span className="pay__tag">Coming soon</span>}
                 </span>
-                <span className="pay__desc">{m.description}</span>
+                {m.description && <span className="pay__desc">{m.description}</span>}
               </span>
             </label>
           ))}
@@ -130,7 +193,7 @@ function CheckoutForm() {
 
         {error && <p className="product__error" role="alert">{error}</p>}
 
-        <button type="submit" className="btn btn--block" disabled={busy || !method}>
+        <button type="submit" className="btn btn--block" disabled={busy || !methods}>
           {busy ? "Placing order…" : "Place order"}
         </button>
         <Link to="/cart" className="summary__more">Back to cart</Link>

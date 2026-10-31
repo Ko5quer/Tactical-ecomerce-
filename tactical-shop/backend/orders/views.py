@@ -4,14 +4,25 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from carts.models import Cart
 from products.models import Product
 
-from .models import Order, OrderItem
-from .serializers import CheckoutSerializer, OrderSerializer
+from .models import (
+    BankAccount,
+    Order,
+    OrderItem,
+    PaymentMethod,
+    ensure_default_payment_methods,
+)
+from .serializers import (
+    BankAccountSerializer,
+    CheckoutSerializer,
+    OrderSerializer,
+    PaymentMethodSerializer,
+)
 
 
 @api_view(["GET"])
@@ -112,3 +123,48 @@ def checkout(request):
     cart.cart_items.all().delete()
 
     return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
+
+
+# ---------------------------------------------------------------------
+#  PAYMENT INFORMATION
+# ---------------------------------------------------------------------
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def payment_methods(request):
+    """Public: the options shown on the checkout page."""
+    ensure_default_payment_methods()
+    methods = PaymentMethod.objects.all()
+    return Response(PaymentMethodSerializer(methods, many=True).data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def payment_instructions(request, order_id):
+    """Private: how to pay for one of YOUR orders.
+
+    Bank details are only returned to the customer who owns an unpaid EFT order,
+    never to the public."""
+    order = get_object_or_404(Order, pk=order_id, user=request.user)
+    method = PaymentMethod.objects.filter(code=order.payment_method).first()
+
+    data = {
+        "method": order.payment_method,
+        "label": method.label if method else order.get_payment_method_display(),
+        "reference": order.reference,
+        "amount": str(order.total),
+        "payment_status": order.payment_status,
+        "instructions": method.instructions if method else "",
+        "bank_account": None,
+    }
+
+    if (
+        order.payment_method == "eft"
+        and order.payment_status != "paid"
+        and order.status != "cancelled"
+    ):
+        account = BankAccount.objects.filter(is_active=True).first()
+        if account:
+            data["bank_account"] = BankAccountSerializer(account).data
+
+    return Response(data)

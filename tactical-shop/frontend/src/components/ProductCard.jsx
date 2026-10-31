@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth, useCart } from "./AppContext";
 import { errorMessage, formatPrice, mediaUrl } from "./api";
+import SafeImage from "./SafeImage";
 
 export default function ProductCard({ product }) {
   const { user, openAuth } = useAuth();
@@ -31,7 +32,7 @@ export default function ProductCard({ product }) {
   return (
     <article className="product">
       <div className="product__media">
-        {img ? <img src={img} alt={product.product_name} loading="lazy" /> : <span className="product__noimg">No image</span>}
+        <SafeImage src={img} alt={product.product_name} />
         {outOfStock && <span className="product__tag">Sold out</span>}
         {!outOfStock && product.current_stock <= 5 && (
           <span className="product__tag product__tag--low">Only {product.current_stock} left</span>
