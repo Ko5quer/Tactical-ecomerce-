@@ -1,5 +1,5 @@
 // Change this if your Django server runs somewhere else.
-export const API_URL = "http://127.0.0.1:8000";
+export const API_URL = "https://tccairsoft.duckdns.org";
 
 const KEY = "tactical_tokens";
 const TIMEOUT_MS = 15000; // give up on a request after 15 seconds
