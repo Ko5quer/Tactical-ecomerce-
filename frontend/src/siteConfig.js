@@ -1,21 +1,26 @@
 /* =====================================================================
-   SITE CONFIG — the one file to edit for everyday changes.
-   Nav links, hero text and section headings all live here.
+   SITE CONFIG: the one file to edit for everyday changes.
+   Menu links, banner text, About text, contact details and social links
+   all live here.
+
+   (Payment details such as bank account info are NOT here: they are
+   stored on the server and edited in the Django admin. See README.)
    ===================================================================== */
 
 export const SITE = {
-  name: "Airsoft Guild", // used for the logo's alt text
+  name: "TC Airsoft Guild",
+  tagline: "Gear for a higher purpose.",
 };
 
 /* ---------------------------------------------------------------------
    TOP MENU
-   Each entry becomes a link in the banner (and in the mobile menu).
+   Each entry becomes a link in the banner (and in the mobile menu + footer).
    Order here = order on screen.
 
    To add a page:
-     1. create the page file in src/pages/        (e.g. AboutPage.jsx)
+     1. create the page file in src/pages/        (e.g. FaqPage.jsx)
      2. add a <Route> for it in src/App.jsx
-     3. add / uncomment a line below
+     3. add a line below
 
    Fields:
      label     text shown in the menu
@@ -25,9 +30,10 @@ export const SITE = {
 export const NAV_LINKS = [
   { label: "Home", href: "/" },
   { label: "Categories", href: "/categories" },
+  { label: "About", href: "/about" },
+  { label: "Contact", href: "/contact" },
 
-  // Pages already built and routed — just uncomment to show them:
-  // { label: "About", href: "/about" },
+  // Already built, just uncomment to show:
   // { label: "Book Events", href: "/events" },
 
   // Link to another website:
@@ -58,47 +64,53 @@ export const FEATURED = {
 };
 
 /* ---------------------------------------------------------------------
-   CHECKOUT: PAYMENT METHODS
-   These appear as choices on the checkout page, in this order.
-   enabled: false shows the option greyed out with "Coming soon".
-   IMPORTANT: a method must also be allowed on the server
-   (ENABLED_PAYMENT_METHODS in orders/serializers.py) or checkout will refuse it.
+   CONTACT DETAILS + SOCIAL LINKS
+   Used by the Contact page, the About page and the footer.
+   Leave a value as "" (or delete it) and that icon/card disappears.
    --------------------------------------------------------------------- */
-export const PAYMENT_METHODS = [
-  {
-    id: "cod",
-    label: "Cash on delivery",
-    description: "Pay in cash when your order arrives.",
-    enabled: true,
-  },
-  {
-    id: "eft",
-    label: "Bank transfer (EFT)",
-    description: "Pay by EFT. We'll show our bank details after you order and process it once payment reflects.",
-    enabled: true,
-  },
-  {
-    id: "card",
-    label: "Card / online payment",
-    description: "Pay securely online with your card.",
-    enabled: false, // switch on once a payment gateway is connected
-  },
-];
+export const CONTACT = {
+  email: "tcairsoftguild@gmail.com",
 
-/* Shown on the order page when a customer picks bank transfer (EFT).
-   REPLACE with your real banking details. */
-export const BANK_DETAILS = {
-  "Bank": "Your Bank",
-  "Account name": "Your Business Name",
-  "Account number": "0000000000",
-  "Branch code": "000000",
-  "Account type": "Business cheque",
+  whatsapp:
+    "https://api.whatsapp.com/send/?phone=%2B27656834435&text&type=phone_number&app_absent=0",
+  whatsappDisplay: "+27 65 683 4435",
+
+  instagram: "https://www.instagram.com/tunnels_conglomerate/",
+  instagramHandle: "@tunnels_conglomerate",
+
+  facebook: "https://www.facebook.com/groups/1069467703823369/",
+  facebookLabel: "Join our Facebook group",
+
+  location: "Pretoria, Gauteng",
 };
 
 /* Shown at checkout and on the order confirmation */
 export const DELIVERY_NOTE = "We'll contact you to confirm delivery details and any delivery cost.";
 
-export const STORE_CONTACT = {
-  email: "orders@yourshop.com",
-  phone: "000 000 0000",
+/* ---------------------------------------------------------------------
+   ABOUT PAGE TEXT
+   specialties and affiliations are lists: add, remove or reorder lines.
+   --------------------------------------------------------------------- */
+export const ABOUT = {
+  eyebrow: "Who we are",
+  title: "About us",
+
+  intro:
+    "TC Airsoft Guild (Tunnels Conglomerate) is a tactical airsoft community based in Pretoria, Gauteng, founded by a few great friends and built for everyone from fresh recruits to veteran operators. We believe in honor, adrenaline, and community.",
+
+  specialtiesTitle: "We specialize in",
+  specialties: [
+    "CQB (Close Quarters Battle) scenarios",
+    "Bush warfare missions",
+    "Tactical simulations with evolving objectives",
+    "Our own hybrid format: Bonksoft (Melee + Airsoft madness) in partnership with the Dahoga Emporium",
+    "Laying the groundwork for Airsoft x Real Steel crossover training",
+  ],
+
+  closing:
+    "Whether you're looking for a casual skirmish, an intense mission, or a creative game mode, TC is the place to test your tactics and make lifelong friends.",
+
+  affiliationsTitle: "Proudly affiliated with",
+  affiliations: ["SAACA (South African Airsoft Club Association)", "Bear Projects"],
+  affiliationsText: "We support fair play, safety, and the growth of airsoft in South Africa.",
 };

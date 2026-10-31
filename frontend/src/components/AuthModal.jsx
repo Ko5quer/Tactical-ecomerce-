@@ -1,17 +1,20 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "./AppContext";
-import { errorMessage } from "./api";
+import { errorMessage, splitErrors } from "./api";
+import Field from "./Field";
+import { LOGIN_SCHEMA, REGISTER_SCHEMA, useForm } from "./validation";
 import "./AuthModal.css";
 
 const EMPTY = { email: "", password: "", first_name: "", last_name: "" };
 
 export default function AuthModal({ open, onClose }) {
-  const { user, login, register, logout } = useAuth();
+  const { user, login, register, logout, authMessage } = useAuth();
   const [mode, setMode] = useState("login"); // "login" | "register"
-  const [form, setForm] = useState(EMPTY);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const form = useForm(EMPTY, mode === "login" ? LOGIN_SCHEMA : REGISTER_SCHEMA, "auth");
 
   // close on Escape
   useEffect(() => {
@@ -21,28 +24,35 @@ export default function AuthModal({ open, onClose }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  // reset the form whenever it's reopened
+  // start clean whenever it is opened or the tab changes
   useEffect(() => {
     if (open) {
+      form.reset(EMPTY);
       setError("");
-      setForm(EMPTY);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, mode]);
 
   if (!open) return null;
 
-  const set = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }));
-
   const submit = async (e) => {
     e.preventDefault();
+    if (!form.validateAll()) return;
+
     setBusy(true);
     setError("");
     try {
-      if (mode === "login") await login(form.email, form.password);
-      else await register(form);
+      if (mode === "login") await login(form.values.email, form.values.password);
+      else await register(form.values);
       onClose();
     } catch (err) {
-      setError(errorMessage(err));
+      if (mode === "login" && err.status === 401) {
+        setError("Incorrect email or password.");
+      } else {
+        const { fields, general } = splitErrors(err, ["email", "password", "first_name", "last_name"]);
+        form.setServerErrors(fields);
+        setError(general);
+      }
     } finally {
       setBusy(false);
     }
@@ -82,33 +92,63 @@ export default function AuthModal({ open, onClose }) {
               {mode === "login" ? "Log in" : "Create account"}
             </h2>
 
-            <form onSubmit={submit} className="auth__form">
+            {authMessage && <p className="auth__error" role="status">{authMessage}</p>}
+
+            <form onSubmit={submit} className="auth__form" noValidate>
               {mode === "register" && (
                 <div className="auth__row">
-                  <label>
-                    First name
-                    <input value={form.first_name} onChange={set("first_name")} autoComplete="given-name" />
-                  </label>
-                  <label>
-                    Last name
-                    <input value={form.last_name} onChange={set("last_name")} autoComplete="family-name" />
-                  </label>
+                  <Field
+                    label="First name"
+                    name="first_name"
+                    idPrefix="auth"
+                    value={form.values.first_name}
+                    onChange={form.setField("first_name")}
+                    onBlur={form.blur("first_name")}
+                    error={form.errors.first_name}
+                    autoComplete="given-name"
+                    maxLength={150}
+                  />
+                  <Field
+                    label="Last name"
+                    name="last_name"
+                    idPrefix="auth"
+                    value={form.values.last_name}
+                    onChange={form.setField("last_name")}
+                    onBlur={form.blur("last_name")}
+                    error={form.errors.last_name}
+                    autoComplete="family-name"
+                    maxLength={150}
+                  />
                 </div>
               )}
-              <label>
-                Email
-                <input type="email" required autoFocus value={form.email} onChange={set("email")} autoComplete="email" />
-              </label>
-              <label>
-                Password
-                <input
-                  type="password"
-                  required
-                  value={form.password}
-                  onChange={set("password")}
-                  autoComplete={mode === "login" ? "current-password" : "new-password"}
-                />
-              </label>
+
+              <Field
+                label="Email"
+                name="email"
+                idPrefix="auth"
+                type="email"
+                value={form.values.email}
+                onChange={form.setField("email")}
+                onBlur={form.blur("email")}
+                error={form.errors.email}
+                autoComplete="email"
+                maxLength={254}
+                autoFocus
+              />
+
+              <Field
+                label="Password"
+                name="password"
+                idPrefix="auth"
+                type="password"
+                value={form.values.password}
+                onChange={form.setField("password")}
+                onBlur={form.blur("password")}
+                error={form.errors.password}
+                hint={mode === "register" ? "At least 8 characters, not only numbers." : undefined}
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
+                maxLength={128}
+              />
 
               {error && <p className="auth__error" role="alert">{error}</p>}
 

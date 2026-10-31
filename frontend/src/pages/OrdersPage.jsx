@@ -1,19 +1,22 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import ErrorNotice from "../components/ErrorNotice";
 import RequireLogin from "../components/RequireLogin";
-import { STATUS_LABEL, api, errorMessage, formatPrice, orderRef } from "../components/api";
+import { STATUS_LABEL, api, errorMessage, formatPrice } from "../components/api";
 
 function OrderList() {
   const [orders, setOrders] = useState(null);
   const [error, setError] = useState("");
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    setError("");
     api("/api/orders/")
       .then(setOrders)
       .catch((err) => setError(errorMessage(err)));
-  }, []);
+  }, [attempt]);
 
-  if (error) return <div className="notice"><p>{error}</p></div>;
+  if (error) return <ErrorNotice message={`We couldn't load your orders. ${error}`} onRetry={() => setAttempt((a) => a + 1)} />;
   if (!orders) return <p className="muted">Loading…</p>;
 
   if (orders.length === 0) {
@@ -33,7 +36,7 @@ function OrderList() {
           <li key={o.id}>
             <Link to={`/orders/${o.id}`} className="orders__row">
               <div>
-                <strong>{orderRef(o.id)}</strong>
+                <strong>{o.reference}</strong>
                 <span className="muted small">
                   {new Date(o.created_at).toLocaleDateString()} · {units} {units === 1 ? "item" : "items"}
                 </span>

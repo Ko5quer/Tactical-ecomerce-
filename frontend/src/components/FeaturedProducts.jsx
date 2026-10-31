@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { api } from "./api";
+import { api, errorMessage } from "./api";
+import ErrorNotice from "./ErrorNotice";
 import ProductCard from "./ProductCard";
 import { FEATURED } from "../siteConfig";
 
@@ -15,10 +16,12 @@ export default function FeaturedProducts({
   shuffle = true, // show the "Show different picks" button
 }) {
   const [products, setProducts] = useState([]);
-  const [status, setStatus] = useState("loading"); // loading | ready | error
+  const [status, setStatus] = useState("loading"); // loading | ready | refreshing
+  const [error, setError] = useState("");
 
   const load = useCallback(() => {
     setStatus((s) => (s === "ready" ? "refreshing" : "loading"));
+    setError("");
     // auth:false -> public data, never send a (maybe expired) login token
     api(`${endpoint}?limit=${limit}`, { auth: false })
       .then((data) => {
@@ -27,7 +30,8 @@ export default function FeaturedProducts({
       })
       .catch((err) => {
         console.warn("[FeaturedProducts] could not load products:", err);
-        setStatus("error");
+        setError(errorMessage(err));
+        setStatus("ready"); // keep whatever we already had on screen
       });
   }, [endpoint, limit]);
 
@@ -35,8 +39,8 @@ export default function FeaturedProducts({
     load();
   }, [load]);
 
-  // nothing to show? hide the whole section instead of leaving a gap
-  if (status === "error" || (status === "ready" && products.length === 0)) return null;
+  // nothing to show and nothing went wrong: hide the section instead of leaving a gap
+  if (status === "ready" && products.length === 0 && !error) return null;
 
   return (
     <section className="featured" aria-labelledby="featured-title">
@@ -47,7 +51,7 @@ export default function FeaturedProducts({
             <h2 id="featured-title" className="page__title">{title}</h2>
             {subtitle && <p className="muted">{subtitle}</p>}
           </div>
-          {shuffle && (
+          {shuffle && products.length > 0 && (
             <button
               type="button"
               className="btn btn--small btn--ghost"
@@ -59,13 +63,17 @@ export default function FeaturedProducts({
           )}
         </header>
 
-        <div className={`products ${status === "refreshing" ? "is-dim" : ""}`}>
-          {status === "loading"
-            ? Array.from({ length: Math.min(limit, 4) }, (_, i) => (
-                <div key={i} className="product product--skeleton" aria-hidden="true" />
-              ))
-            : products.map((p) => <ProductCard key={p.id} product={p} />)}
-        </div>
+        {error && <ErrorNotice message={`Couldn't load featured products. ${error}`} onRetry={load} />}
+
+        {(status === "loading" || products.length > 0) && (
+          <div className={`products ${status === "refreshing" ? "is-dim" : ""}`}>
+            {status === "loading"
+              ? Array.from({ length: Math.min(limit, 4) }, (_, i) => (
+                  <div key={i} className="product product--skeleton" aria-hidden="true" />
+                ))
+              : products.map((p) => <ProductCard key={p.id} product={p} />)}
+          </div>
+        )}
       </div>
     </section>
   );

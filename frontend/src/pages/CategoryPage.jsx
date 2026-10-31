@@ -1,16 +1,19 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { api, errorMessage } from "../components/api";
+import ErrorNotice from "../components/ErrorNotice";
 import ProductCard from "../components/ProductCard";
+import { api, errorMessage } from "../components/api";
 
 export default function CategoryPage() {
   const { id } = useParams();
   const [category, setCategory] = useState(null);
   const [products, setProducts] = useState([]);
   const [status, setStatus] = useState("loading"); // loading | ready | error
-  const [error, setError] = useState("");
+  const [error, setError] = useState({ message: "", retry: true });
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    let live = true;
     setStatus("loading");
     // auth:false -> public pages must not send a (possibly expired) token
     Promise.all([
@@ -18,15 +21,21 @@ export default function CategoryPage() {
       api(`/api/categories/${id}/products/`, { auth: false }),
     ])
       .then(([cat, prods]) => {
+        if (!live) return;
         setCategory(cat);
         setProducts(prods);
         setStatus("ready");
       })
       .catch((err) => {
-        setError(err.status === 404 ? "That category doesn't exist." : errorMessage(err));
+        if (!live) return;
+        const missing = err.status === 404;
+        setError({ message: missing ? "That category doesn't exist." : errorMessage(err), retry: !missing });
         setStatus("error");
       });
-  }, [id]);
+    return () => {
+      live = false;
+    };
+  }, [id, attempt]);
 
   return (
     <main className="page">
@@ -34,7 +43,9 @@ export default function CategoryPage() {
 
       {status === "loading" && <p className="muted">Loading…</p>}
 
-      {status === "error" && <div className="notice"><p>{error}</p></div>}
+      {status === "error" && (
+        <ErrorNotice message={error.message} onRetry={error.retry ? () => setAttempt((a) => a + 1) : undefined} />
+      )}
 
       {status === "ready" && (
         <>

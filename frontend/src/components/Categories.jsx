@@ -6,8 +6,8 @@ import "./Categories.css";
    DEFAULTS — everything below can be overridden with props
    ==================================================================== */
 
-// Shown if the API fails or returns nothing, so the section is never empty.
-const DEFAULT_FALLBACK_CATEGORIES = [
+// Optional sample data: pass fallbackCategories={DEMO_CATEGORIES} to preview the design without a server.
+export const DEMO_CATEGORIES = [
   { id: 1, name: "Tactical Clothing", slug: "tactical-clothing" },
   { id: 2, name: "Outdoor Gear", slug: "outdoor-gear" },
   { id: 3, name: "Firearms", slug: "firearms" },
@@ -161,7 +161,7 @@ export default function Categories({
   dataPath, //            where the array lives in the response, e.g. "data.categories"
   categories, //          pass an array directly to skip fetching
   mapItem = defaultMapItem,
-  fallbackCategories = DEFAULT_FALLBACK_CATEGORIES,
+  fallbackCategories = [], // shown only if the server returns an EMPTY list
 
   /* ---- images ---- */
   fallbackImages, //      array of image URLs/imports to use when a category has no image
@@ -182,7 +182,9 @@ export default function Categories({
   style, //               set CSS variables here to restyle, see Categories.css
 }) {
   const [items, setItems] = useState(categories ? categories.map(mapItem) : []);
-  const [status, setStatus] = useState(categories || !endpoint ? "ready" : "loading");
+  const [status, setStatus] = useState(categories || !endpoint ? "ready" : "loading"); // loading | ready | error
+  const [error, setError] = useState("");
+  const [attempt, setAttempt] = useState(0); // bump to retry the request
 
   /* ---------- fetch ---------- */
   useEffect(() => {
@@ -197,9 +199,10 @@ export default function Categories({
     }
     const ctrl = new AbortController();
     setStatus("loading");
+    setError("");
     fetch(endpoint, { ...fetchOptions, signal: ctrl.signal })
       .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        if (!r.ok) throw Object.assign(new Error(`HTTP ${r.status}`), { status: r.status });
         return r.json();
       })
       .then((json) => {
@@ -215,11 +218,18 @@ export default function Categories({
         if (err.name === "AbortError") return;
         console.warn("[Categories] could not load categories:", err);
         setItems([]);
-        setStatus("ready");
+        setError(
+          err.status >= 500
+            ? "The server ran into a problem loading categories."
+            : err.status
+            ? "We couldn't load the categories."
+            : "Could not reach the server. Check your connection."
+        );
+        setStatus("error");
       });
     return () => ctrl.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [endpoint, categories, dataPath]);
+  }, [endpoint, categories, dataPath, attempt]);
 
   /* ---------- fallback data + images ---------- */
   const list = items.length ? items : status === "ready" ? fallbackCategories.map(mapItem) : [];
@@ -284,6 +294,8 @@ export default function Categories({
 
   const canScroll = pages > 1;
 
+  const showNotice = status === "error" || (status === "ready" && cards.length === 0);
+
   /* ---------- render ---------- */
   return (
     <section className={`cats ${className}`} style={style} aria-labelledby="cats-title">
@@ -319,6 +331,17 @@ export default function Categories({
           {subtitle && <p className="cats__subtitle">{subtitle}</p>}
         </header>
 
+        {showNotice ? (
+          <div className="cats__notice" role={status === "error" ? "alert" : undefined}>
+            <p>{status === "error" ? error : "No categories yet. Check back soon."}</p>
+            {status === "error" && (
+              <button type="button" className="cats__retry" onClick={() => setAttempt((a) => a + 1)}>
+                Try again
+              </button>
+            )}
+          </div>
+        ) : (
+        <>
         <div className="cats__stage">
           <button
             type="button"
@@ -385,6 +408,8 @@ export default function Categories({
               />
             ))}
           </div>
+        )}
+        </>
         )}
       </div>
     </section>

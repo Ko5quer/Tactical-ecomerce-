@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
-import { api, clearTokens, getTokens, setTokens } from "./api";
+import { api, clearTokens, errorMessage, getTokens, setTokens } from "./api";
 
 /* ======================= AUTH ======================= */
 const AuthContext = createContext(null);
@@ -9,11 +9,12 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(Boolean(getTokens()));
   const [authOpen, setAuthOpen] = useState(false); // login popup visibility
+  const [authMessage, setAuthMessage] = useState(""); // e.g. "session expired"
 
   // On page load: if we have a saved token, find out who it belongs to.
   useEffect(() => {
     if (!getTokens()) return;
-    api("/api/accounts/me/")
+    api("/api/accounts/me/", { notifyExpired: false })
       .then(setUser)
       .catch((err) => {
         if (err.status === 401) clearTokens(); // only drop tokens if they're truly invalid
@@ -21,10 +22,21 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
+  // api.js announces this when a login can no longer be renewed
+  useEffect(() => {
+    const onExpired = () => {
+      setUser(null);
+      setAuthMessage("Your session has ended. Please log in again.");
+      setAuthOpen(true);
+    };
+    window.addEventListener("auth:expired", onExpired);
+    return () => window.removeEventListener("auth:expired", onExpired);
+  }, []);
+
   const login = async (email, password) => {
     const tokens = await api("/api/accounts/login/", {
       method: "POST",
-      body: { email, password },
+      body: { email: email.trim().toLowerCase(), password },
       auth: false,
     });
     setTokens(tokens);
@@ -34,7 +46,12 @@ export function AuthProvider({ children }) {
   const register = async ({ email, password, first_name, last_name }) => {
     await api("/api/accounts/register/", {
       method: "POST",
-      body: { email, password, first_name, last_name },
+      body: {
+        email: email.trim().toLowerCase(),
+        password,
+        first_name: first_name.trim(),
+        last_name: (last_name ?? "").trim(),
+      },
       auth: false,
     });
     await login(email, password);
@@ -52,8 +69,12 @@ export function AuthProvider({ children }) {
     register,
     logout,
     authOpen,
+    authMessage,
     openAuth: () => setAuthOpen(true),
-    closeAuth: () => setAuthOpen(false),
+    closeAuth: () => {
+      setAuthOpen(false);
+      setAuthMessage("");
+    },
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -66,16 +87,19 @@ export const useCart = () => useContext(CartContext);
 export function CartProvider({ children }) {
   const { user } = useAuth();
   const [cart, setCart] = useState(null); // null = not loaded yet / logged out
+  const [cartError, setCartError] = useState("");
 
   const refresh = useCallback(async () => {
     if (!user) {
       setCart(null);
+      setCartError("");
       return;
     }
     try {
       setCart(await api("/api/carts/"));
+      setCartError("");
     } catch (err) {
-      console.warn("[cart] could not load cart:", err);
+      setCartError(errorMessage(err));
     }
   }, [user]);
 
@@ -112,7 +136,7 @@ export function CartProvider({ children }) {
 
   return (
     <CartContext.Provider
-      value={{ cart, items, count, subtotal, addToCart, updateQuantity, removeItem, checkout, refresh }}
+      value={{ cart, cartError, items, count, subtotal, addToCart, updateQuantity, removeItem, checkout, refresh }}
     >
       {children}
     </CartContext.Provider>

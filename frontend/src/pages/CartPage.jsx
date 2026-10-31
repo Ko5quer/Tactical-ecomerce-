@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useCart } from "../components/AppContext";
+import ErrorNotice from "../components/ErrorNotice";
 import RequireLogin from "../components/RequireLogin";
+import SafeImage from "../components/SafeImage";
 import { errorMessage, formatPrice, mediaUrl } from "../components/api";
 
 function CartContents() {
-  const { cart, items, subtotal, updateQuantity, removeItem } = useCart();
+  const { cart, cartError, refresh, items, subtotal, updateQuantity, removeItem } = useCart();
   const [busy, setBusy] = useState(null); // an item id while it is updating
   const [error, setError] = useState("");
 
@@ -22,7 +24,13 @@ function CartContents() {
     }
   };
 
-  if (!cart) return <p className="muted">Loading your cart…</p>;
+  if (!cart) {
+    return cartError ? (
+      <ErrorNotice message={`We couldn't load your cart. ${cartError}`} onRetry={refresh} />
+    ) : (
+      <p className="muted">Loading your cart…</p>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -38,17 +46,19 @@ function CartContents() {
       <ul className="cart__list">
         {items.map((item) => {
           const p = item.product;
-          const img = mediaUrl(p.image);
           const disabled = busy === item.id;
           return (
             <li key={item.id} className="cart__row">
               <div className="cart__img">
-                {img ? <img src={img} alt="" /> : <span>—</span>}
+                <SafeImage src={mediaUrl(p.image)} fallback="—" />
               </div>
 
               <div className="cart__info">
                 <h3>{p.product_name}</h3>
                 <p className="muted">{formatPrice(p.product_price)} each</p>
+                {item.quantity > p.current_stock && (
+                  <p className="product__error">Only {p.current_stock} left in stock. Please lower the quantity.</p>
+                )}
                 <button
                   type="button"
                   className="link-btn"
@@ -95,7 +105,7 @@ function CartContents() {
           <strong>{formatPrice(subtotal)}</strong>
         </div>
 
-        {error && <p className="product__error">{error}</p>}
+        {error && <p className="product__error" role="alert">{error}</p>}
 
         <Link to="/checkout" className="btn btn--block">Proceed to checkout</Link>
         <Link to="/categories" className="summary__more">Continue shopping</Link>
