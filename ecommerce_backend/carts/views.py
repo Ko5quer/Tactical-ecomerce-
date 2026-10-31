@@ -1,23 +1,38 @@
-
-from django.shortcuts import get_object_or_404
 from django.db import transaction
+from django.shortcuts import get_object_or_404
+from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status
+
+from products.models import Product
 
 from .models import Cart, CartItem
-from products.models import Product
 from .serializers import CartSerializer
+
+
+def _bad_request(message):
+    return Response({"error": message}, status=status.HTTP_400_BAD_REQUEST)
+
+
+def _parse_quantity(raw, default=None):
+    """Returns a positive int or None if invalid."""
+    if raw is None:
+        raw = default
+    if raw is None or isinstance(raw, bool):
+        return None
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return None
+    return value if value >= 1 else None
 
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_cart(request):
     cart, created = Cart.objects.get_or_create(user=request.user)
-
-    serializer = CartSerializer(cart)
-
+    serializer = CartSerializer(cart, context={"request": request})
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -26,42 +41,43 @@ def get_cart(request):
 @transaction.atomic
 def add_cartItem(request):
     product_id = request.data.get("product_id")
-    quantity = request.data.get("quantity", 1)
-
-    if product_id is None:
-        return Response(
-            {"error": "product_id is required"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
+    if product_id is None or isinstance(product_id, bool):
+        return _bad_request("product_id is required")
     try:
-        if isinstance(quantity, bool):
-            raise ValueError
-
-        quantity = int(quantity)
-
-        if quantity < 1:
-            raise ValueError
-
+        product_id = int(product_id)
     except (TypeError, ValueError):
-        return Response(
-            {"error": "quantity must be a positive integer"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        return _bad_request("product_id must be a number")
+
+    quantity = _parse_quantity(request.data.get("quantity"), default=1)
+    if quantity is None:
+        return _bad_request("quantity must be a positive whole number")
 
     product = get_object_or_404(Product, pk=product_id)
 
+    if product.current_stock < 1:
+        return _bad_request(f"{product.product_name} is out of stock.")
+
     cart, created = Cart.objects.get_or_create(user=request.user)
 
-    item, created = CartItem.objects.get_or_create(
-        cart=cart,
-        product=product,
-        defaults={"quantity": quantity},
-    )
+    item = CartItem.objects.filter(cart=cart, product=product).first()
+    already_in_cart = item.quantity if item else 0
 
-    if not created:
+    if already_in_cart + quantity > product.current_stock:
+        left = product.current_stock - already_in_cart
+        if left <= 0:
+            return _bad_request(
+                f"You already have all {product.current_stock} of {product.product_name} in your cart."
+            )
+        return _bad_request(
+            f"Only {product.current_stock} of {product.product_name} in stock "
+            f"(you can add {left} more)."
+        )
+
+    if item:
         item.quantity += quantity
         item.save(update_fields=["quantity", "updated_at"])
+    else:
+        item = CartItem.objects.create(cart=cart, product=product, quantity=quantity)
 
     return Response(
         {
@@ -76,30 +92,19 @@ def add_cartItem(request):
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated])
 def cartItem_quantity(request, item_id):
-    quantity = request.data.get("quantity")
-
-    try:
-        if isinstance(quantity, bool):
-            raise ValueError
-
-        quantity = int(quantity)
-
-        if quantity < 1:
-            raise ValueError
-
-    except (TypeError, ValueError):
-        return Response(
-            {"error": "quantity must be a positive integer"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+    quantity = _parse_quantity(request.data.get("quantity"))
+    if quantity is None:
+        return _bad_request("quantity must be a positive whole number")
 
     cart = get_object_or_404(Cart, user=request.user)
-
     item = get_object_or_404(
-        CartItem,
-        pk=item_id,
-        cart=cart,
+        CartItem.objects.select_related("product"), pk=item_id, cart=cart
     )
+
+    if quantity > item.product.current_stock:
+        return _bad_request(
+            f"Only {item.product.current_stock} of {item.product.product_name} in stock."
+        )
 
     item.quantity = quantity
     item.save(update_fields=["quantity", "updated_at"])
@@ -118,15 +123,8 @@ def cartItem_quantity(request, item_id):
 @permission_classes([IsAuthenticated])
 def remove_cartItem(request, item_id):
     cart = get_object_or_404(Cart, user=request.user)
-
-    item = get_object_or_404(
-        CartItem,
-        pk=item_id,
-        cart=cart,
-    )
-
+    item = get_object_or_404(CartItem, pk=item_id, cart=cart)
     item.delete()
-
     return Response(
         {"message": "Product removed from cart"},
         status=status.HTTP_200_OK,
@@ -136,7 +134,9 @@ def remove_cartItem(request, item_id):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def checkout(request):
+    # Placeholder kept so carts/urls.py still works. The real checkout is
+    # POST /api/orders/checkout/
     return Response(
-        {"message": "Checkout is not implemented yet"},
+        {"message": "Use /api/orders/checkout/ to place an order."},
         status=status.HTTP_501_NOT_IMPLEMENTED,
     )
