@@ -1,0 +1,331 @@
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Rajdhani:wght@600;700&display=swap");
+
+/* ====================================================================
+   CUSTOMISE: override any of these on the component, e.g.
+   <Categories style={{ "--cats-bg-from": "#ff8a00", "--cats-per-view": 4 }} />
+   ==================================================================== */
+.cats {
+  --cats-bg-from: #ff6a00;      /* section background (top-left)   */
+  --cats-bg-to: #d94400;        /* section background (bottom-right)*/
+  --cats-ink: #120904;          /* headings, dots, arrows          */
+  --cats-lead: #120904;         /* "Explore our" colour            */
+  --cats-accent: #ffffff;       /* "Categories" colour             */
+  --cats-card: #0d0704;         /* card base colour                */
+  --cats-card-line: #ffd6b8;    /* card outline                    */
+  --cats-card-accent: #ff6a00;  /* icon + "Shop now"               */
+  --cats-card-text: #ffffff;    /* category name                   */
+  --cats-gap: clamp(12px, 1.4vw, 20px);
+  --cats-per-view: 6;           /* cards visible at once (desktop) */
+  --cats-card-ratio: 4 / 5.3;
+  --cats-cut: 16px;             /* corner chamfer size             */
+
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  color: var(--cats-ink);
+  font-family: "Outfit", system-ui, sans-serif;
+  background: linear-gradient(135deg, var(--cats-bg-from) 0%, var(--cats-bg-to) 100%);
+  padding: clamp(40px, 6vw, 80px) 0 clamp(36px, 5vw, 64px);
+}
+
+/* ---------------- decoration ---------------- */
+.cats__scene {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+.cats__mountains {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 75%;
+  height: 70%;
+  fill: #8a2c00;
+  opacity: 0.32;
+}
+.cats__topo {
+  position: absolute;
+  left: -4%;
+  bottom: -8%;
+  width: clamp(200px, 26vw, 380px);
+  fill: none;
+  stroke: #7a2600;
+  stroke-opacity: 0.35;
+}
+.cats__reticle {
+  position: absolute;
+  top: 5%;
+  right: 4%;
+  width: clamp(60px, 8vw, 110px);
+  fill: none;
+  stroke: var(--cats-ink);
+  stroke-width: 1.2;
+  opacity: 0.45;
+}
+.cats__grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.16;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* ---------------- layout ---------------- */
+.cats__inner {
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 0 clamp(16px, 3vw, 40px);
+}
+
+.cats__head {
+  padding: 0 clamp(0px, 2.8vw, 80px);
+  margin-bottom: clamp(24px, 3.4vw, 44px);
+}
+
+.cats__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 0 0 12px;
+  font-weight: 500;
+  font-size: clamp(0.85rem, 1.2vw, 1.15rem);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+.cats__rule {
+  width: clamp(32px, 3vw, 58px);
+  height: 3px;
+  background: var(--cats-ink);
+}
+
+.cats__title {
+  margin: 0;
+  font-family: "Rajdhani", sans-serif;
+  font-weight: 700;
+  font-size: clamp(2.5rem, 6vw, 4.8rem);
+  line-height: 0.95;
+  text-transform: uppercase;
+  color: var(--cats-lead);
+}
+.cats__title span { display: block; }
+.cats__title--accent { color: var(--cats-accent); }
+
+.cats__subtitle {
+  margin: clamp(12px, 1.6vw, 20px) 0 0;
+  max-width: 52ch;
+  font-size: clamp(0.98rem, 1.3vw, 1.2rem);
+  line-height: 1.55;
+  font-weight: 400;
+}
+
+/* ---------------- carousel ---------------- */
+.cats__stage {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 52px;
+  align-items: center;
+  gap: clamp(8px, 1.4vw, 20px);
+}
+
+.cats__track {
+  list-style: none;
+  margin: 0;
+  padding: 10px 0 14px;   /* room for hover lift + shadow */
+  display: flex;
+  column-gap: var(--cats-gap);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.cats__track::-webkit-scrollbar { display: none; }
+
+.cats__item {
+  flex: 0 0 calc((100% - (var(--cats-per-view) - 1) * var(--cats-gap)) / var(--cats-per-view));
+  scroll-snap-align: start;
+  min-width: 0;
+}
+
+/* ---------------- card ---------------- */
+.cats__card {
+  --cut: var(--cats-cut);
+  position: relative;
+  display: block;
+  aspect-ratio: var(--cats-card-ratio);
+  color: var(--cats-card-text);
+  text-decoration: none;
+  /* outer shape = the outline colour */
+  background: var(--cats-card-line);
+  clip-path: polygon(
+    var(--cut) 0, calc(100% - var(--cut)) 0, 100% var(--cut),
+    100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%,
+    var(--cut) 100%, 0 calc(100% - var(--cut)), 0 var(--cut)
+  );
+  transition: transform 0.25s ease;
+}
+/* inner shape inset by the line width */
+.cats__card::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  background: var(--cats-card);
+  clip-path: polygon(
+    calc(var(--cut) - 1px) 0, calc(100% - var(--cut) + 1px) 0, 100% calc(var(--cut) - 1px),
+    100% calc(100% - var(--cut) + 1px), calc(100% - var(--cut) + 1px) 100%,
+    calc(var(--cut) - 1px) 100%, 0 calc(100% - var(--cut) + 1px), 0 calc(var(--cut) - 1px)
+  );
+}
+
+.cats__bg,
+.cats__shade {
+  position: absolute;
+  inset: 2px;
+  clip-path: inherit;
+}
+.cats__bg {
+  background-size: cover;
+  background-position: center;
+  /* tints any photo toward the dark/orange palette */
+  filter: sepia(0.55) saturate(1.3) contrast(1.05) brightness(0.8);
+  transition: transform 0.5s ease;
+}
+.cats__shade {
+  background:
+    linear-gradient(0deg, rgba(8, 4, 2, 0.97) 8%, rgba(8, 4, 2, 0.55) 48%, rgba(8, 4, 2, 0.15) 100%),
+    linear-gradient(135deg, rgba(255, 106, 0, 0.18), transparent 60%);
+}
+
+.cats__body {
+  position: absolute;
+  inset: 2px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: clamp(14px, 1.6vw, 22px);
+}
+
+.cats__icon {
+  width: clamp(34px, 3.4vw, 46px);
+  height: clamp(34px, 3.4vw, 46px);
+  margin-bottom: 6px;
+  color: var(--cats-card-accent);
+}
+
+.cats__name {
+  font-family: "Rajdhani", sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.1rem, 1.5vw, 1.4rem);
+  line-height: 1.05;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.cats__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  color: var(--cats-card-accent);
+  font-weight: 500;
+  font-size: 0.88rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.cats__cta svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.2s ease;
+}
+
+.cats__card:hover,
+.cats__card:focus-visible { transform: translateY(-6px); }
+.cats__card:hover .cats__bg { transform: scale(1.06); }
+.cats__card:hover .cats__cta svg { transform: translateX(5px); }
+.cats__card:focus-visible { outline: 3px solid var(--cats-ink); outline-offset: 4px; }
+
+/* ---------------- skeleton ---------------- */
+.cats__card--skeleton {
+  pointer-events: none;
+  background: rgba(13, 7, 4, 0.55);
+}
+.cats__card--skeleton::before {
+  background: linear-gradient(100deg, rgba(13, 7, 4, 0.7) 30%, rgba(60, 25, 8, 0.75) 50%, rgba(13, 7, 4, 0.7) 70%);
+  background-size: 250% 100%;
+  animation: cats-shimmer 1.4s linear infinite;
+}
+@keyframes cats-shimmer { to { background-position: -150% 0; } }
+
+/* ---------------- arrows & dots ---------------- */
+.cats__arrow {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  border: 2px solid var(--cats-ink);
+  color: var(--cats-ink);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+}
+.cats__arrow svg {
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.cats__arrow:hover:not(:disabled) { background: var(--cats-ink); color: var(--cats-bg-from); }
+.cats__arrow:disabled { opacity: 0.3; cursor: default; }
+.cats__arrow:focus-visible,
+.cats__dot:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+.cats__dots {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: clamp(14px, 2vw, 26px);
+}
+.cats__dot {
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid var(--cats-ink);
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.cats__dot.is-active { background: var(--cats-ink); transform: scale(1.15); }
+
+/* ---------------- responsive ---------------- */
+@media (max-width: 1280px) { .cats { --cats-per-view: 5; } }
+@media (max-width: 1060px) { .cats { --cats-per-view: 4; } }
+@media (max-width: 820px)  { .cats { --cats-per-view: 3; } }
+
+@media (max-width: 640px) {
+  .cats { --cats-per-view: 2; --cats-cut: 12px; }
+  .cats__stage { grid-template-columns: minmax(0, 1fr); }
+  .cats__arrow { display: none; }          /* swipe on touch devices */
+  .cats__head { padding: 0; }
+  .cats__eyebrow { letter-spacing: 0.2em; }
+}
+
+@media (max-width: 420px) {
+  .cats { --cats-per-view: 1.4; }          /* peek at the next card */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cats * { transition: none !important; animation: none !important; }
+  .cats__track { scroll-behavior: auto; }
+}

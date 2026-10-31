@@ -1,0 +1,12 @@
+/* Replaces the default Vite/CRA stylesheet. */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #070403;
+  color: #fff;
+  font-family: "Outfit", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+img { max-width: 100%; }
