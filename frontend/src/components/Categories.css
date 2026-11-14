@@ -5,8 +5,8 @@
    <Categories style={{ "--cats-bg-from": "#ff8a00", "--cats-per-view": 4 }} />
    ==================================================================== */
 .cats {
-  --cats-bg-from: #ff6a00;      /* section background (top-left)   */
-  --cats-bg-to: #d94400;        /* section background (bottom-right)*/
+  --cats-bg-from: #a58813;      /* section background (top-left)   */
+  --cats-bg-to: #7f630c;        /* section background (bottom-right)*/
   --cats-ink: #120904;          /* headings, dots, arrows          */
   --cats-lead: #120904;         /* "Explore our" colour            */
   --cats-accent: #ffffff;       /* "Categories" colour             */

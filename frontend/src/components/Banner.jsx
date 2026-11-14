@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import "./Banner.css";
-import logo from "./logo.png"; // <-- change to your logo's actual filename
-import { HERO, NAV_LINKS, SITE } from "../siteConfig"; // edit menu + text there
+import logo from "./tclogo.svg"; 
+import { HERO, NAV_LINKS, SITE } from "../siteConfig";
 
 /* ---------- small inline icons (no extra packages needed) ---------- */
 const Icon = ({ children, ...props }) => (
