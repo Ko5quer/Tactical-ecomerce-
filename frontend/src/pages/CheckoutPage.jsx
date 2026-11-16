@@ -4,7 +4,7 @@ import { useAuth, useCart } from "../components/AppContext";
 import ErrorNotice from "../components/ErrorNotice";
 import Field from "../components/Field";
 import RequireLogin from "../components/RequireLogin";
-import { api, errorMessage, formatPrice, splitErrors } from "../components/api";
+import { api, errorMessage, formatPrice, splitErrors, startPayfast } from "../components/api";
 import { CHECKOUT_SCHEMA, useForm } from "../components/validation";
 import { DELIVERY_NOTE } from "../siteConfig";
 
@@ -67,6 +67,19 @@ function CheckoutForm() {
         Object.entries(form.values).map(([k, v]) => [k, v.trim()])
       );
       const order = await checkout({ ...details, payment_method: method });
+
+      // Card orders go straight to PayFast to pay.
+      if (order.payment_method === "card") {
+        try {
+          await startPayfast(order.id); // leaves the site
+        } catch {
+          // The order exists (and the cart is cleared) but PayFast didn't open.
+          // The order page has a "Pay now" button, so send them there.
+          navigate(`/orders/${order.id}`, { state: { placed: true } });
+        }
+        return;
+      }
+
       // "placed" tells the order page to show the big "order received" message
       navigate(`/orders/${order.id}`, { state: { placed: true } });
     } catch (err) {
@@ -194,7 +207,13 @@ function CheckoutForm() {
         {error && <p className="product__error" role="alert">{error}</p>}
 
         <button type="submit" className="btn btn--block" disabled={busy || !methods}>
-          {busy ? "Placing order…" : "Place order"}
+          {busy
+            ? method === "card"
+              ? "Taking you to PayFast…"
+              : "Placing order…"
+            : method === "card"
+              ? "Place order and pay"
+              : "Place order"}
         </button>
         <Link to="/cart" className="summary__more">Back to cart</Link>
       </aside>

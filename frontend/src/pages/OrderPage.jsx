@@ -1,9 +1,17 @@
-import { useEffect, useState } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
 import ErrorNotice from "../components/ErrorNotice";
 import RequireLogin from "../components/RequireLogin";
 import SafeImage from "../components/SafeImage";
-import { PAYMENT_LABEL, STATUS_LABEL, api, errorMessage, formatPrice, mediaUrl } from "../components/api";
+import {
+  PAYMENT_LABEL,
+  STATUS_LABEL,
+  api,
+  errorMessage,
+  formatPrice,
+  mediaUrl,
+  startPayfast,
+} from "../components/api";
 import { CONTACT, DELIVERY_NOTE } from "../siteConfig";
 
 const STEPS = ["pending", "processing", "completed"];
@@ -46,6 +54,8 @@ function PaymentPanel({ order }) {
   const [info, setInfo] = useState(null);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState("");
 
   useEffect(() => {
     let live = true;
@@ -57,6 +67,17 @@ function PaymentPanel({ order }) {
       live = false;
     };
   }, [order.id, order.payment_status, attempt]);
+
+  const payNow = async () => {
+    setPaying(true);
+    setPayError("");
+    try {
+      await startPayfast(order.id); // leaves the site
+    } catch (err) {
+      setPayError(errorMessage(err));
+      setPaying(false);
+    }
+  };
 
   if (error) {
     return (
@@ -78,6 +99,21 @@ function PaymentPanel({ order }) {
 
       {paid ? (
         <p>Payment received. Thank you!</p>
+      ) : info.method === "card" ? (
+        <>
+          <p className="muted">
+            Pay <strong>{formatPrice(info.amount)}</strong> securely by card through PayFast. You'll be sent to
+            PayFast to pay, then brought back here.
+          </p>
+
+          {payError && <p className="product__error" role="alert">{payError}</p>}
+
+          <button type="button" className="btn" onClick={payNow} disabled={paying}>
+            {paying ? "Taking you to PayFast…" : "Pay now"}
+          </button>
+
+          {info.instructions && <p className="muted pre">{info.instructions}</p>}
+        </>
       ) : info.method === "eft" ? (
         <>
           <p className="muted">
@@ -139,10 +175,13 @@ function PaymentPanel({ order }) {
 function OrderDetails() {
   const { id } = useParams();
   const { state } = useLocation();
+  const [searchParams] = useSearchParams();
+  const payment = searchParams.get("payment"); // "success" | "cancelled" | null (set by PayFast's return)
   const justPlaced = Boolean(state?.placed);
   const [order, setOrder] = useState(null);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
+  const polls = useRef(0);
 
   useEffect(() => {
     setError("");
@@ -151,17 +190,62 @@ function OrderDetails() {
       .catch((err) => setError(err.status === 404 ? "We couldn't find that order." : errorMessage(err)));
   }, [id, attempt]);
 
+  // PayFast confirms the payment a few seconds after sending the customer back,
+  // so while it's still unpaid, check again every 3 seconds (up to 10 times).
+  useEffect(() => {
+    if (payment !== "success" || !order || order.payment_status === "paid") return;
+    if (polls.current >= 10) return;
+    const t = setTimeout(() => {
+      polls.current += 1;
+      setAttempt((a) => a + 1);
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [payment, order]);
+
   if (error) {
     return <ErrorNotice message={error} onRetry={error.includes("couldn't find") ? undefined : () => setAttempt((a) => a + 1)} />;
   }
   if (!order) return <p className="muted">Loading…</p>;
 
   const cancelled = order.status === "cancelled";
+  const unpaid = order.payment_status !== "paid";
   const stepIndex = STEPS.indexOf(order.status);
 
   return (
     <>
-      {justPlaced && (
+      {payment === "success" && !unpaid && (
+        <div className="success" role="status">
+          <span className="success__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#111" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m5 12.5 4.5 4.5L19 7.5" />
+            </svg>
+          </span>
+          <div>
+            <h2>Payment received!</h2>
+            <p>
+              Thank you. Your payment for <strong>{order.reference}</strong> has been confirmed, and we'll get your
+              order moving.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {payment === "success" && unpaid && !cancelled && (
+        <div className="notice" role="status">
+          <p>
+            Thanks! We're confirming your payment with PayFast. This page updates by itself, and you'll get an email
+            once it's confirmed.
+          </p>
+        </div>
+      )}
+
+      {payment === "cancelled" && unpaid && !cancelled && (
+        <div className="notice" role="status">
+          <p>Payment was cancelled. Your order is saved, and you can pay below whenever you're ready.</p>
+        </div>
+      )}
+
+      {justPlaced && !payment && (
         <div className="success" role="status">
           <span className="success__icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="#111" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -175,7 +259,9 @@ function OrderDetails() {
               <strong>{order.reference}</strong> is in.{" "}
               {order.payment_method === "eft"
                 ? "Pay with the bank details below and we'll get it moving."
-                : "We'll be in touch to arrange delivery."}
+                : order.payment_method === "card"
+                  ? "Complete your card payment below and we'll get it moving."
+                  : "We'll be in touch to arrange delivery."}
             </p>
           </div>
         </div>

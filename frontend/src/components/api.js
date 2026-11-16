@@ -106,6 +106,31 @@ export async function api(path, { method = "GET", body, auth = true, notifyExpir
   return data;
 }
 
+/* ---------- PayFast ----------
+   Asks the server for a signed payment form, then sends the browser to
+   PayFast to pay. The page navigates away, so nothing after this runs.
+   Use it right after checkout, and for a "Pay now" button on unpaid card orders. */
+export async function startPayfast(orderId) {
+  const { url, fields } = await api(`/api/orders/${orderId}/payfast/start/`, {
+    method: "POST",
+  });
+
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = url;
+
+  Object.entries(fields).forEach(([k, v]) => {
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = k;
+    input.value = v;
+    form.appendChild(input);
+  });
+
+  document.body.appendChild(form);
+  form.submit();
+}
+
 /* ---------- turning errors into text ---------- */
 const prettyField = (k) => k.replace(/_/g, " ");
 
