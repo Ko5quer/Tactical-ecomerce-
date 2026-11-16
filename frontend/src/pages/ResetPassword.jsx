@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { api, splitErrors } from "../api";
+import { api, splitErrors } from "../components/api";
 
 export default function ResetPassword() {
   const [params] = useSearchParams();
