@@ -48,6 +48,7 @@ class Order(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    payfast_payment_id = models.CharField(max_length=50, blank=True, default="")
 
     @property
     def reference(self):

@@ -115,6 +115,8 @@ def checkout(request):
         product.save(update_fields=["current_stock"])
 
     cart.cart_items.all().delete()
+    if payment_method != "card":
+        transaction.on_commit(lambda: send_order_email(order))
 
     return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
 

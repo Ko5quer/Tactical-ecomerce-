@@ -87,7 +87,7 @@ def add_cartItem(request):
         },
         status=status.HTTP_200_OK,
     )
-
+SECRET_KEY = 'django-insecure-m=ebxh%b)mavt(-1fz1-xk&w+ouo_o@tw=*k%*xcz(d=d_(9xd'
 
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated])
