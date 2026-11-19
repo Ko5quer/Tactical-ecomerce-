@@ -150,6 +150,13 @@ export default function AuthModal({ open, onClose }) {
                 maxLength={128}
               />
 
+              {/* Forgot password: only on the log in tab */}
+              {mode === "login" && (
+                <Link to="/forgot-password" className="auth__link" onClick={onClose}>
+                  Forgot your password?
+                </Link>
+              )}
+
               {error && <p className="auth__error" role="alert">{error}</p>}
 
               <button className="auth__submit" disabled={busy}>
