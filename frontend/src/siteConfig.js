@@ -8,8 +8,8 @@
    ===================================================================== */
 
 export const SITE = {
-  name: "TC Airsoft Guild",
-  tagline: "Gear for a higher purpose.",
+  name: "TacArms",
+  tagline: "Gear up",
 };
 
 /* ---------------------------------------------------------------------
@@ -69,19 +69,14 @@ export const FEATURED = {
    Leave a value as "" (or delete it) and that icon/card disappears.
    --------------------------------------------------------------------- */
 export const CONTACT = {
-  email: "tcairsoftguild@gmail.com",
-
-  whatsapp:
-    "https://api.whatsapp.com/send/?phone=%2B27656834435&text&type=phone_number&app_absent=0",
-  whatsappDisplay: "+27 65 683 4435",
-
-  instagram: "https://www.instagram.com/tunnels_conglomerate/",
-  instagramHandle: "@tunnels_conglomerate",
-
-  facebook: "https://www.facebook.com/groups/1069467703823369/",
-  facebookLabel: "Join our Facebook group",
-
-  location: "Pretoria, Gauteng",
+  email: "tacarms1@gmail.com",
+  whatsapp: "27849531361",              
+  whatsappDisplay: "084 953 1361",
+  instagram: "https://www.instagram.com/tac.arms.1/",
+  instagramHandle: "@tac.arms.1",
+  facebook: "https://www.facebook.com/TacarmsPage/",
+  facebookName: "Tac Arms",
+  location: "Pretoria, Gauteng",                         // keep whatever you had
 };
 
 /* Shown at checkout and on the order confirmation */
@@ -96,21 +91,22 @@ export const ABOUT = {
   title: "About us",
 
   intro:
-    "TC Airsoft Guild (Tunnels Conglomerate) is a tactical airsoft community based in Pretoria, Gauteng, founded by a few great friends and built for everyone from fresh recruits to veteran operators. We believe in honor, adrenaline, and community.",
+    "Tac Arms is a tactical and outdoor gear shop built for people who take their kit seriously, from first-time field players to seasoned operators. We supply dependable, field-ready gear and back it with honest advice and good service.",
 
-  specialtiesTitle: "We specialize in",
+  specialtiesTitle: "What we offer",
   specialties: [
-    "CQB (Close Quarters Battle) scenarios",
-    "Bush warfare missions",
-    "Tactical simulations with evolving objectives",
-    "Our own hybrid format: Bonksoft (Melee + Airsoft madness) in partnership with the Dahoga Emporium",
-    "Laying the groundwork for Airsoft x Real Steel crossover training",
+    "Tactical gear and field equipment",
+    "Outdoor and bush-ready kit",
+    "Gear for CQB and bush-warfare style gameplay",
+    "Advice on choosing the right kit for your game, role and budget",
+    "Support for the local tactical and airsoft community",
   ],
 
   closing:
-    "Whether you're looking for a casual skirmish, an intense mission, or a creative game mode, TC is the place to test your tactics and make lifelong friends.",
+    "Whether you're gearing up for your first skirmish or your hundredth mission, Tac Arms is here to make sure you show up prepared.",
 
   affiliationsTitle: "Proudly affiliated with",
-  affiliations: ["SAACA (South African Airsoft Club Association)", "Bear Projects"],
-  affiliationsText: "We support fair play, safety, and the growth of airsoft in South Africa.",
+  affiliations: ["TC Airsoft (Tunnels Conglomerate)"],
+  affiliationsText:
+    "Through our partnership with TC Airsoft, we stay connected to the community we serve and support fair play, safety and the growth of tactical sports in South Africa.",
 };
