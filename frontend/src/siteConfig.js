@@ -80,7 +80,10 @@ export const CONTACT = {
 };
 
 /* Shown at checkout and on the order confirmation */
+/* Shown at checkout and on the order confirmation */
+export const DELIVERY_ENABLED = true;
 export const DELIVERY_NOTE = "We'll contact you to confirm delivery details and any delivery cost.";
+
 
 /* ---------------------------------------------------------------------
    ABOUT PAGE TEXT
