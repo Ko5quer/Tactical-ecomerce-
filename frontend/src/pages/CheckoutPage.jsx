@@ -6,9 +6,18 @@ import Field from "../components/Field";
 import RequireLogin from "../components/RequireLogin";
 import { api, errorMessage, formatPrice, splitErrors, startPayfast } from "../components/api";
 import { CHECKOUT_SCHEMA, useForm } from "../components/validation";
-import { DELIVERY_NOTE } from "../siteConfig";
+import { DELIVERY_ENABLED, DELIVERY_NOTE } from "../siteConfig";
 
 const FIELDS = ["full_name", "phone", "address", "city", "postal_code", "notes", "payment_method"];
+
+// While delivery is off, the delivery fields are not shown, so they must not be validated.
+// (Assumes CHECKOUT_SCHEMA is a plain object keyed by field name.)
+const DELIVERY_FIELDS = ["address", "city", "postal_code"];
+const SCHEMA = DELIVERY_ENABLED
+  ? CHECKOUT_SCHEMA
+  : Object.fromEntries(
+      Object.entries(CHECKOUT_SCHEMA).filter(([key]) => !DELIVERY_FIELDS.includes(key))
+    );
 
 function CheckoutForm() {
   const { user } = useAuth();
@@ -24,7 +33,7 @@ function CheckoutForm() {
       postal_code: "",
       notes: "",
     },
-    CHECKOUT_SCHEMA,
+    SCHEMA,
     "co"
   );
 
@@ -125,20 +134,27 @@ function CheckoutForm() {
   return (
     <form className="cart" onSubmit={submit} noValidate>
       <div>
-        {/* ---------- 1. delivery ---------- */}
+        {/* ---------- 1. your details (delivery details only when delivery is on) ---------- */}
         <section className="panel">
-          <h2><span className="step-num">1</span> Delivery details</h2>
+          <h2>
+            <span className="step-num">1</span>{" "}
+            {DELIVERY_ENABLED ? "Delivery details" : "Your details"}
+          </h2>
           <div className="fields">
             <Field label="Full name" {...fieldProps("full_name")} autoComplete="name" maxLength={150} />
             <Field label="Phone number" {...fieldProps("phone")} type="tel" autoComplete="tel" maxLength={30} />
-            <Field label="Street address" {...fieldProps("address")} wide autoComplete="street-address" maxLength={255} />
-            <Field label="City / town" {...fieldProps("city")} autoComplete="address-level2" maxLength={100} />
-            <Field
-              label="Postal code (optional)"
-              {...fieldProps("postal_code")}
-              autoComplete="postal-code"
-              maxLength={10}
-            />
+            {DELIVERY_ENABLED && (
+              <>
+                <Field label="Street address" {...fieldProps("address")} wide autoComplete="street-address" maxLength={255} />
+                <Field label="City / town" {...fieldProps("city")} autoComplete="address-level2" maxLength={100} />
+                <Field
+                  label="Postal code (optional)"
+                  {...fieldProps("postal_code")}
+                  autoComplete="postal-code"
+                  maxLength={10}
+                />
+              </>
+            )}
             <Field
               label="Order notes (optional)"
               {...fieldProps("notes")}
@@ -202,7 +218,11 @@ function CheckoutForm() {
           <span>Total</span>
           <strong>{formatPrice(subtotal)}</strong>
         </div>
-        <p className="muted small">{DELIVERY_NOTE}</p>
+        <p className="muted small">
+          {DELIVERY_ENABLED
+            ? DELIVERY_NOTE
+            : "We don't offer delivery right now. Orders are for collection."}
+        </p>
 
         {error && <p className="product__error" role="alert">{error}</p>}
 

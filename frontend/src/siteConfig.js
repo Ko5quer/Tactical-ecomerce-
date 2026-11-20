@@ -76,7 +76,7 @@ export const CONTACT = {
   instagramHandle: "@tac.arms.1",
   facebook: "https://www.facebook.com/TacarmsPage/",
   facebookName: "Tac Arms",
-  location: "Pretoria, Gauteng",                         // keep whatever you had
+  location: "114 A VAN DEVENTER STREET, RANDGATE, RANDFONTEIN, GAUTENG, 1759",                         // keep whatever you had
 };
 
 /* Shown at checkout and on the order confirmation */
